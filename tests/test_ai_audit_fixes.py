@@ -163,7 +163,7 @@ def test_lm_session_receipt_survives_criticism_and_reopening(content_fixture, in
         with Session(engine) as db, db.begin():
             row = db.get(ContentTask, token)
             initial = screen(db, config, row)[0]
-            assert "Потрачено: 300" in initial and "Всего за сессию: 300" in initial
+            assert "токен" not in initial.lower() and "сесси" not in initial.lower()
             _, digest, _, _ = lm.confirmation(db, config, row, True)
             lm.launch(db, config, row, digest, True)
         tick(content_fixture)
@@ -171,8 +171,8 @@ def test_lm_session_receipt_survives_criticism_and_reopening(content_fixture, in
     with Session(engine) as db:
         row = db.get(ContentTask, token)
         text = screen(db, config, row)[0]
-        assert "Потрачено: 600" in text and "Всего за сессию: 900" in text
-        assert "Безлимитный доступ" in text if index == 0 else "Осталось:" in text
+        assert "токен" not in text.lower() and "сесси" not in text.lower()
+        assert "Бесплатная попытка" not in text
         assert ai_usage.task_total(db, row) == 900
 
 
@@ -207,24 +207,29 @@ def test_patterns_session_counts_analysis_once_and_all_batches(content_fixture):
         with Session(engine) as db:
             child = db.get(ContentTask, child_token)
             assert ai_usage.task_total(db, child) == 300 + (n + 1) * 600
-            assert f"Всего за сессию: {300 + (n + 1) * 600}" in ai_usage.task_receipt(db, child)
+            receipt = ai_usage.task_receipt(db, child)
+            assert "токен" not in receipt.lower() and "сесси" not in receipt.lower()
     with Session(engine) as db:
         parent = db.get(ContentTask, token)
         assert ai_usage.task_total(db, parent) == 1500
 
 
 @pytest.mark.parametrize("mode", ["unlimited", "trial", "balance"])
-def test_every_billing_mode_sees_usage_without_currency(mode):
+def test_customer_receipt_shows_only_credits(mode):
     row = AIOperation(
         input_tokens=800,
         output_tokens=450,
         billing_mode=mode,
         status="completed",
         balance_after=5000,
+        charged_credits=2 if mode == "balance" else 0,
+        snapshot={"credit_quote": {"unit": "credits"}},
     )
     text = ai_tokens.receipt(row, 4000)
-    assert "Потрачено: 1250" in text and "Всего за сессию: 4000" in text
-    assert "₽" not in text and "$" not in text
+    assert "Списано: 2 кредитов" in text if mode == "balance" else "Списано: 0 кредитов" in text
+    assert "Остаток: 5000 кредитов" in text
+    assert "токен" not in text.lower() and "вход:" not in text.lower()
+    assert "сесси" not in text.lower() and "бесплатн" not in text.lower()
 
 
 @pytest.mark.parametrize("kind", ["content", "lead_magnet"])

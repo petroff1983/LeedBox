@@ -58,34 +58,22 @@ def payment_preview(
     mode = ai_tokens.funding(db, config, owner, bot, test, offer)
     # The confirmation must not silently become paid after a trial is consumed elsewhere.
     offer["confirmed_billing"] = mode
-    if mode == "unlimited":
-        return True, "♾ Безлимитный доступ. Списаний с вашего баланса нет."
-    if mode == "trial":
-        return True, "🎁 Бесплатная попытка. Токены с баланса не списываются."
-    ensure_search_margin(db, str(offer.get("purpose", "")), int(offer["maximum"]))
     balance = ai_tokens.available(db, owner, bot, test)
+    if mode in {"unlimited", "trial"}:
+        return True, f"К списанию: 0 кредитов. Остаток: {balance} кредитов."
+    ensure_search_margin(db, str(offer.get("purpose", "")), int(offer["maximum"]))
     if credits.is_credit(offer):
         credits.ensure_margin(db, offer)
         charge = credits.amount(offer)
         enough = balance >= charge
         return enough, (
-            f"🪙 Остаток: {balance:,} кредитов.\nСтоимость: {charge} кредитов.\n"
-            "Цена фиксирована; фактические токены покажем отдельно."
+            f"Списание: {charge} кредитов. Остаток: {balance:,} кредитов."
             + ("\nНе хватает кредитов. Пополните баланс." if not enough else "")
         )
     enough = balance >= offer["maximum"]
     if offer.get("purpose") in {"dzen_search", "youtube_search", "content_search"}:
-        return enough, (
-            f"🪙 Остаток: {balance:,} токенов.\n"
-            f"Цена поиска: {offer['maximum']:,} токенов (фиксированная, не расход ИИ)."
-            + ("\nНе хватает токенов. Пополните баланс." if not enough else "")
-        )
-    return enough, (
-        f"🪙 Остаток: {balance:,} токенов. Резерв: до {offer['maximum']:,}.\n"
-        "Это верхняя граница резерва, не цена.\n"
-        "Спишем только фактический вход + выход API. Дневного лимита нет."
-        + ("\nНе хватает токенов для резерва. Пополните баланс." if not enough else "")
-    )
+        return enough, "Недостаточно кредитов. Пополните баланс." if not enough else ""
+    return enough, "Недостаточно кредитов. Пополните баланс." if not enough else ""
 
 
 def writing_profile(db: Session, owner: int, bot: int, test: bool) -> AIOperation | None:

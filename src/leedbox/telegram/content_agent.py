@@ -60,6 +60,7 @@ def request_screen(row: ContentTask) -> tuple[str, list[list[tuple[str, str]]]]:
 def receipt(db: Session, row: ContentTask, operation: AIOperation | None) -> str:
     if operation is None:
         return ""
+    return ai_usage.task_receipt(db, row)
     if row.payload.get("workflow") == "competitor":
         return (
             "♾ Безлимитный доступ. Баланс не списывается."

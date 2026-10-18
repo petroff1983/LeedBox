@@ -162,6 +162,7 @@ def recover_stale(engine: Engine, config: Settings, bot: int) -> None:
 
 def receipt(db: Session, owner: int, bot: int, test: bool, number: int) -> str:
     op = operation(db, owner, bot, test, number)
+    return ai_tokens.receipt(op)
     if op.billing_mode == "unlimited":
         return "♾ Безлимитный доступ. Баланс не списывается."
     if op.billing_mode == "trial":

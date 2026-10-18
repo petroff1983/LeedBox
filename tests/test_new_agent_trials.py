@@ -144,7 +144,8 @@ def test_youtube_trial_paid_repeat_and_foreign_user(trials):
     engine, config, _, owners, bot = trials
     with Session(engine) as db:
         offer, text = youtube_offer(db, trials)
-        assert "Бесплатная попытка" in text
+        assert "К списанию: 0 кредитов" in text
+        assert "токен" not in text.lower()
     with patch("leedbox.application.youtube.analyze", return_value=(snapshot(), True)) as fetch:
         number = youtube_billing.execute(engine, config, owners[1], bot, "yt-trial", offer, fetch)
         assert (
@@ -160,7 +161,8 @@ def test_youtube_trial_paid_repeat_and_foreign_user(trials):
         assert ai_tokens.free_remaining(db, owners[1], bot, True, "youtube_search") == 0
         assert ai_tokens.free_remaining(db, owners[2], bot, True, "youtube_search") == 1
         next_offer, text = youtube_offer(db, trials, "@another")
-        assert "Цена поиска" in text and "Пополните" in text
+        assert "Недостаточно кредитов" in text and "Пополните баланс" in text
+        assert "токен" not in text.lower()
     with patch("leedbox.application.youtube.analyze") as fetch:
         with pytest.raises(ValueError, match="Недостаточно"):
             youtube_billing.execute(engine, config, owners[1], bot, "yt-paid", next_offer, fetch)
@@ -175,7 +177,9 @@ def test_youtube_trial_paid_repeat_and_foreign_user(trials):
         op = db.get(AIOperation, number)
         assert op.billing_mode == "balance" and op.status == "completed"
         assert ai_tokens.available(db, owners[1], bot, True) == 4000
-        assert "не расход ИИ" in youtube_billing.receipt(db, owners[1], bot, True, number)
+        receipt = youtube_billing.receipt(db, owners[1], bot, True, number)
+        assert receipt == "Готово."
+        assert "токен" not in receipt.lower()
 
 
 def test_youtube_error_restores_trial_and_paid_reserve(trials):

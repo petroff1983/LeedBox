@@ -297,7 +297,8 @@ def test_image_error_is_visible_even_when_callback_expired(ai_fixture):
             await click("ip:generate:" + draft["token"])
             assert api.call_count == 2
             assert (await context.get_data())["image_draft"]["phase"] == "ready"
-            assert "Потрачено: 1200" in sent[-1].text
+            assert "Списано: 1 кредитов" in sent[-1].text
+            assert "токен" not in sent[-1].text.lower()
             await context.clear()
         await bot.session.close()
         await dp.storage.close()
@@ -370,7 +371,7 @@ def test_image_router_text_confirmation_history_no_second_paid_call(ai_fixture):
             await click(f"ip:finish:{draft['token']}")
             draft = (await context.get_data())["image_draft"]
             assert draft["phase"] == "confirm"
-            assert "верхняя граница резерва" in sent[-1].text
+            assert "токен" not in sent[-1].text.lower()
             api.assert_not_called()
             await click("section:agents")
             await click("ip:resume")
@@ -378,7 +379,8 @@ def test_image_router_text_confirmation_history_no_second_paid_call(ai_fixture):
             api.assert_called_once()
             number = (await context.get_data())["image_draft"]["operation_id"]
             assert sum("🖼 Разместите картинку:" in s.text for s in sent) == 5
-            assert "Потрачено: 1200" in sent[-1].text
+            assert sent[-1].text == "Готово."
+            assert "токен" not in sent[-1].text.lower()
             await click(f"ait:result:{number}")
             assert "Новых списаний нет" in sent[-1].text
             api.assert_called_once()

@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 from typing import Any
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from leedbox.application import ai_tokens
@@ -11,24 +11,7 @@ from leedbox.infrastructure.models import AIOperation, ContentTask
 
 
 def operation_receipt(db: Session, row: AIOperation) -> str:
-    total = row.input_tokens + row.output_tokens
-    token = row.snapshot.get("search_token")
-    if token:
-        total = (
-            db.scalar(
-                select(
-                    func.coalesce(func.sum(AIOperation.input_tokens + AIOperation.output_tokens), 0)
-                ).where(
-                    AIOperation.owner_user_id == row.owner_user_id,
-                    AIOperation.bot_id == row.bot_id,
-                    AIOperation.test_mode == row.test_mode,
-                    AIOperation.kind == "generation",
-                    AIOperation.snapshot["search_token"].astext == token,
-                )
-            )
-            or 0
-        )
-    return ai_tokens.receipt(row, total)
+    return ai_tokens.receipt(row)
 
 
 def task_total(db: Session, task: ContentTask) -> int:
@@ -53,4 +36,4 @@ def task_total(db: Session, task: ContentTask) -> int:
 
 def task_receipt(db: Session, task: ContentTask) -> str:
     operation = db.get(AIOperation, task.operation_id) if task.operation_id else None
-    return ai_tokens.receipt(operation, task_total(db, task)) if operation else ""
+    return ai_tokens.receipt(operation) if operation else ""

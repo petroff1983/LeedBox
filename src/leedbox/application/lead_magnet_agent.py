@@ -216,6 +216,7 @@ def confirmation(
     mode = ai_tokens.funding(db, config, row.owner_user_id, row.bot_id, row.test_mode, offer)
     digest = fingerprint({**offer, "billing": mode})[:12]
     balance = ai_tokens.available(db, row.owner_user_id, row.bot_id, row.test_mode)
+    cost = credits.amount(offer) if mode == "balance" and credits.is_credit(offer) else 0
     text = (
         "♾ Безлимитный доступ, пользовательский баланс не списывается."
         if mode == "unlimited"
@@ -229,6 +230,7 @@ def confirmation(
             f"Стоимость: {credits.amount(offer)} кредитов. Остаток: {balance} кредитов. "
             "Цена фиксирована."
         )
+    text = f"Списание: {cost} кредитов. Остаток: {balance:,} кредитов."
     return offer, digest, text, mode in {"unlimited", "trial"} or balance >= credits.amount(offer)
 
 

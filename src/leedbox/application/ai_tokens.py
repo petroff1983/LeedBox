@@ -74,33 +74,13 @@ def release_reservation(funds: AIAccount, row: AIOperation) -> None:
 
 
 def receipt(row: AIOperation, session_total: int | None = None) -> str:
-    used = row.input_tokens + row.output_tokens
-    total = used if session_total is None else session_total
-    usage = f"Потрачено: {used} токенов за этот шаг.\nВсего за сессию: {total} токенов.\n"
-    usage += f"Вход: {row.input_tokens}, выход: {row.output_tokens}.\n"
-    if row.billing_mode == "unlimited":
-        return usage + "♾ Безлимитный доступ. Баланс не списывается."
-    if row.billing_mode == "trial":
-        return usage + "🎁 Бесплатная попытка. Баланс не списывается."
+    if not credits.is_credit(row.snapshot):
+        return "Готово." if row.status == "completed" else "Операция не выполнена."
     if row.status == "failed":
-        if credits.is_credit(row.snapshot):
-            return usage + "За неудачный шаг кредиты не списаны."
-        return usage + "За неудачный шаг токены с баланса не списаны."
+        return f"Кредиты не списаны. Остаток: {row.balance_after} кредитов."
     if row.status != "completed":
-        return usage + "Расход последнего запроса уточняется; резерв на проверке."
-    if credits.is_credit(row.snapshot):
-        return (
-            usage
-            + f"Списано: {row.charged_credits} кредитов. Остаток: {row.balance_after} кредитов."
-        )
-    return usage + (
-        f"Осталось: {row.balance_after}."
-        + (
-            "\nБаланс исчерпан. Пополните его для следующей генерации."
-            if row.balance_after == 0
-            else ""
-        )
-    )
+        return f"Операция проверяется. Остаток: {row.balance_after} кредитов."
+    return f"Списано: {row.charged_credits} кредитов. Остаток: {row.balance_after} кредитов."
 
 
 def account(db: Session, owner: int, bot: int, test: bool) -> AIAccount:
