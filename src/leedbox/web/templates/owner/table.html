@@ -1,0 +1,15 @@
+{% extends 'owner/master.html' %}{% block body %}
+<h1>{{ title }}</h1>
+{% if links %}<nav class="actions" aria-label="Действия раздела">{% for label,url in links %}<a href="{{ url }}">{{ label }}</a>{% endfor %}</nav>{% endif %}
+{% if create_url %}<p><a class="btn btn-primary" href="{{ create_url }}">Создать карточку</a></p>{% endif %}
+{% if search or status_filter %}<form method="get" class="filters">
+{% if request.args.get('owner') %}<input type="hidden" name="owner" value="{{ request.args.get('owner') }}">{% endif %}
+{% if published_filter %}<div class="filter-field"><label for="published">Публикация</label><select class="form-control" id="published" name="published"><option value="">Все</option><option value="1" {% if request.args.get('published') == '1' %}selected{% endif %}>Опубликованные</option><option value="0" {% if request.args.get('published') == '0' %}selected{% endif %}>Черновики</option></select></div>{% endif %}
+{% if search %}<div class="filter-field"><label for="search">Поиск</label><input class="form-control" id="search" name="q" value="{{ request.args.get('q','') }}" maxlength="100"></div>{% endif %}
+{% if status_filter %}<div class="filter-field"><label for="status">Статус</label><select class="form-control" id="status" name="status"><option value="">Все</option>{% for code,label in [('new','Новая'),('working','В работе'),('closed','Закрыта')] %}<option value="{{ code }}" {% if request.args.get('status') == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>{% endif %}
+<button class="btn btn-outline-secondary" type="submit">Найти</button><a href="{{ request.path }}">Сбросить</a></form>{% endif %}
+{% if rows %}<div class="table-scroll" tabindex="0" role="region" aria-label="{{ title }}"><table class="table"><thead><tr>{% for column in columns %}<th scope="col">{{ column }}</th>{% endfor %}</tr></thead><tbody>
+{% for row in rows %}<tr>{% for cell in row %}<td>{% if cell is mapping %}<a href="{{ cell.url }}">{{ cell.label }}</a>{% else %}{{ cell }}{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+{% else %}<p class="empty">{{ empty|default('Пока записей нет. Попробуйте другой поиск или вернитесь к обзору.') }}</p>{% endif %}
+{% if page is defined %}<nav class="pagination-row" aria-label="Страницы">{% if page > 0 %}<a href="?page={{ page-1 }}&amp;q={{ request.args.get('q','')|urlencode }}&amp;status={{ request.args.get('status','')|urlencode }}&amp;published={{ request.args.get('published','')|urlencode }}&amp;owner={{ request.args.get('owner','')|urlencode }}">← Назад</a>{% endif %}<span>Страница {{ page+1 }}</span>{% if more %}<a href="?page={{ page+1 }}&amp;q={{ request.args.get('q','')|urlencode }}&amp;status={{ request.args.get('status','')|urlencode }}&amp;published={{ request.args.get('published','')|urlencode }}&amp;owner={{ request.args.get('owner','')|urlencode }}">Далее →</a>{% endif %}</nav>{% endif %}
+<p><a href="{{ root }}/">Вернуться к обзору</a></p>{% endblock %}

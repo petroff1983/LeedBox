@@ -1,0 +1,29 @@
+{% extends 'owner/master.html' %}
+{% block body %}
+<!-- THESIS: prepare, inspect, then explicitly send. OWN-WORLD: incumbent owner Bootstrap controls.
+STORY: distinguish news from ads, check audience and text, release or stop the queue.
+FIRST VIEWPORT: title, status, recipient count and exact text before send controls.
+FORM: extension of the existing editor, no new visual identity.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance -->
+<a href="{{ list_url }}">← Рассылки</a>
+<h1>{{ title }}</h1>
+{% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+<dl class="summary"><dt>Тип</dt><dd>{{ kind }}</dd><dt>Статус</dt><dd>{{ status }}</dd><dt>Подходящие эксперты сейчас</dt><dd>{{ audience }}</dd></dl>
+<p class="muted">Только эксперты этого бота, разрешившие такой тип сообщений. Состав адресатов фиксируется при запуске; согласие проверяется повторно перед отправкой. Получатели подарков исключены.</p>
+<h2>Сообщение в Telegram</h2><pre class="result">{{ preview }}</pre>
+{% if button_url %}<p>Кнопка: <a href="{{ button_url }}" rel="noopener noreferrer" target="_blank">{{ button_label }}</a></p>{% endif %}
+<p class="muted">Под сообщением будет кнопка отключения этого типа уведомлений.</p>
+{% if draft %}
+<a href="{{ edit_url }}">Изменить черновик</a>
+<form method="post" class="editor">
+<input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="expected" value="{{ expected }}">
+<div class="confirmation"><label class="check"><input type="checkbox" name="confirmed" value="1"> Подтверждаю текст, тип и отправку выбранным экспертам</label></div>
+<button class="btn btn-primary" name="action" value="send" type="submit">Отправить экспертам</button>
+</form>
+{% else %}
+<h2>Ход отправки</h2>
+{% if outcomes %}<dl class="summary">{% for label,count in outcomes %}<dt>{{ label }}</dt><dd>{{ count }}</dd>{% endfor %}</dl>{% else %}<p>Сообщений в очереди нет.</p>{% endif %}
+<p class="muted">Обновите страницу для актуальных счётчиков. «Доставка не подтверждена» означает неопределённый ответ сети: автоматического повтора нет, чтобы не отправить дубль.</p>
+{% if not stopped %}<form method="post" class="editor"><input type="hidden" name="csrf_token" value="{{ csrf }}"><div class="confirmation"><label class="check"><input type="checkbox" name="confirmed" value="1"> Остановить оставшуюся очередь; уже отправленные сообщения останутся</label></div><button class="btn btn-outline-secondary" name="action" value="cancel" type="submit">Остановить рассылку</button></form>{% endif %}
+{% endif %}
+{% endblock %}

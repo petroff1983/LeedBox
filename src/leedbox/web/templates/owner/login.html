@@ -1,0 +1,10 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Вход владельца — LeedBox</title><link rel="stylesheet" href="{{ url_for('static', filename='owner.css') }}"></head>
+<body class="login password-auth"><main class="login-panel"><h1>LeedBox: вход владельца</h1><p>Введите логин и пароль административной учётной записи.</p>
+{% if changed %}<p role="status">Учётные данные изменены. Все сессии завершены. Войдите с новым паролем.</p>{% endif %}
+{% if error %}<div class="auth-error" role="alert">{{ error }}</div>{% endif %}
+<form method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf }}">
+<div class="form-group"><label for="username">Логин</label><input id="username" name="username" class="form-control" autocomplete="username" maxlength="64" value="{{ username }}" required autofocus></div>
+<div class="form-group"><label for="password">Пароль</label><input type="password" id="password" name="password" class="form-control" autocomplete="current-password" maxlength="128" required></div>
+<button type="submit">Войти</button></form>
+<p class="muted">Сменить логин и пароль можно в разделе «Безопасность». Если доступ утрачен, восстановление выполняется на сервере.</p></main></body></html>

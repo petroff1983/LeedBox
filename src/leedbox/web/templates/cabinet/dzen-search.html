@@ -1,0 +1,16 @@
+{% extends 'cabinet/base.html' %}
+{% block title %}Подборка статей Дзен{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('cabinet_agents') }}">← История агентов</a></p>
+<h1>Подборка статей</h1>
+<p>{{ search.report.get('slug', 'Канал Дзен') }} · сохранено {{ search.created_at.strftime('%d.%m.%Y %H:%M') }} UTC.</p>
+{% if search.report.get('start') and search.report.get('end') %}<p>Дата публикации: {{ search.report.start }} — {{ search.report.end }}.</p>{% endif %}
+<p class="muted">Это снимок результатов поиска, а не обновление статистики. Метрики публикаций накопительные, не только за выбранный период. Открытие бесплатно.</p>
+{% for post in search.report.posts %}<section>
+<h2>{{ loop.index }}. {{ post.title }}</h2>
+<p>Просмотры: {{ post.views if post.get('views') is not none else 'нет данных' }} · дочитывания: {{ post.views_till_end if post.get('views_till_end') is not none else 'нет данных' }}.</p>
+<p class="muted">Дата публикации: {{ post.get('date_publish', 'нет данных') }}</p>
+<div class="filter-actions">{% if post.get('url', '').startswith('https://dzen.ru/') %}<a href="{{ post.url }}" target="_blank" rel="noopener noreferrer">Открыть статью ↗</a>{% endif %}
+{% if results[loop.index0] %}<a href="{{ url_for('cabinet_agent_report', number=results[loop.index0].id) }}">Открыть заголовки</a>{% else %}<span class="muted">Заголовки ещё не созданы. Выберите эту статью в боте: «Агенты» → «История» → «Подборки статей».</span>{% endif %}</div>
+</section>{% endfor %}
+{% endblock %}

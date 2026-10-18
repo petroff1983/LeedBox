@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Открыть ссылку — LeedBox</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='owner.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='links.css') }}">
+  <script src="{{ url_for('static', filename='links.js') }}" defer></script>
+</head>
+<body class="link-opening">
+  <!-- DESIGN CONTRACT: Narrow Operate extension, not a new visual world.
+  Inherit LeedBox owner palette, system typography and accessible focus treatment.
+  FIRST VIEWPORT: task heading, real destination, app action and explicit website fallback.
+  User gesture owns app launch; no timer, fabricated platform promises or decorative assets.
+  Signature interaction: platform-specific launch URL on one clearly labelled action.
+  FINISH: review actual mobile/desktop render and fallback behavior against craft-floor. -->
+  <main class="link-opening__main">
+    {% if target.native or target.android %}
+    <h1>Открыть {{ target.name }}</h1>
+    <p class="muted">Нажмите кнопку, чтобы перейти в приложение. Если переход недоступен, откройте версию сайта.</p>
+    {% else %}
+    <h1>Открыть ссылку</h1>
+    <p class="muted">Откроется исходная страница. Для этого адреса переход в приложение определяют настройки телефона и сайта.</p>
+    {% endif %}
+    <p class="link-opening__destination"><span>Куда ведёт ссылка</span><b>{{ target.host }}</b></p>
+    <div class="link-opening__actions">
+      {% if target.native or target.android %}
+      <a class="link-opening__primary" id="app-link" href="{{ target.native or target.destination }}"
+         {% if target.android %}data-android="{{ target.android }}"{% endif %} rel="noreferrer">Открыть в приложении</a>
+      <a class="link-opening__secondary" href="{{ target.destination }}" rel="noreferrer">Открыть версию сайта</a>
+      {% else %}
+      <a class="link-opening__primary" href="{{ target.destination }}" rel="noreferrer">Открыть страницу</a>
+      {% endif %}
+    </div>
+    <details class="link-opening__full-url"><summary>Посмотреть полный адрес</summary><p>{{ target.destination }}</p></details>
+    <p class="link-opening__note">Переход выполняется только по вашему нажатию. Браузер может запросить разрешение.</p>
+    <p class="link-opening__brand">Ссылка создана через LeedBox.</p>
+  </main>
+</body>
+</html>

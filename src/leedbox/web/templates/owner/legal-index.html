@@ -1,0 +1,15 @@
+{% extends 'owner/master.html' %}{% block body %}
+<h1>{{ title }}</h1>
+<p class="muted">Загрузите свои тексты, оформите и опубликуйте. Черновики видны только владельцу. Публикация создаёт неизменяемую версию: ранее выданные согласия сохраняют ссылку на прочитанный текст.</p>
+{% if error %}<p class="alert alert-danger" role="alert">{{ error }}</p>{% endif %}
+<p><a href="{{ site_url }}" target="_blank" rel="noopener noreferrer">Открыть публичный раздел документов</a></p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Документы"><table class="table"><thead><tr><th>Документ</th><th>Публикация</th><th>Действия</th></tr></thead><tbody>
+{% for doc in docs %}<tr><td>{{ doc.title }}</td><td>{{ doc.state }}{% if doc.changed %}<br>Есть неопубликованные изменения{% endif %}</td><td><a href="{{ root }}/legal/edit?slug={{ doc.slug }}">Редактировать</a>{% if doc.url %}<br><a href="{{ doc.url }}" target="_blank" rel="noopener noreferrer">Посмотреть на сайте</a>{% endif %}</td></tr>{% endfor %}
+</tbody></table></div>
+<h2>Подтверждение при входе в бота</h2>
+<p>Сейчас: <strong>{{ 'включено' if enabled else 'выключено' }}</strong>. Включите после публикации политики и отдельного согласия. В production также нужен публичный адрес сайта. Получение подарков по ссылке не блокируется. Рекламное согласие остаётся отдельным и добровольным.</p>
+<form method="post" class="editor"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="expected" value="{{ expected }}"><input type="hidden" name="enabled" value="{{ '0' if enabled else '1' }}"><label class="check"><input type="checkbox" name="confirmed" value="1" required> Подтверждаю {{ 'отключение' if enabled else 'включение' }} проверки согласия</label><button class="btn btn-primary" type="submit">{{ 'Отключить' if enabled else 'Включить' }} проверку</button></form>
+<p class="muted">Новая публикация согласия потребует повторного подтверждения. Простое сохранение черновика ничего не меняет. Документы не проверяются автоматически на юридическую полноту: реквизиты, цели, сроки и основания обработки заполняет владелец.</p>
+<h2>Последние подтверждения и отзывы</h2>
+{% if events %}<div class="table-scroll" tabindex="0" role="region" aria-label="Журнал согласий"><table class="table"><thead><tr><th>Дата, UTC</th><th>Telegram ID</th><th>Действие</th><th>Версия</th></tr></thead><tbody>{% for event,number in events %}<tr><td>{{ event.created_at.strftime('%d.%m.%Y %H:%M') }}</td><td>{{ event.telegram_user_id }}</td><td>{{ 'Согласие дано' if event.action == 'grant' else 'Согласие отозвано' }}</td><td>{{ number }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p>Подтверждений ещё нет.</p>{% endif %}
+{% endblock %}

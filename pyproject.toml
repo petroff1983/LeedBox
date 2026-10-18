@@ -1,0 +1,53 @@
+[project]
+name = "leedbox"
+version = "0.1.0"
+description = "Telegram tools for experts"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "aiogram>=3.26,<4",
+  "sqlalchemy>=2.0,<2.1",
+  "alembic>=1.16,<2",
+  "psycopg[binary]>=3.2,<4",
+  "flask>=3.1,<4",
+  "flask-admin[sqlalchemy]>=2.2,<3",
+  "pydantic-settings>=2.10,<3",
+  "waitress>=3,<4",
+  "nh3>=0.3,<0.4",
+]
+
+[project.scripts]
+leedbox-bot = "leedbox.telegram.runtime:main"
+leedbox-web = "leedbox.web.runtime:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "pytest-cov>=6,<8", "ruff>=0.12,<1", "mypy>=1.16,<2", "types-waitress>=3,<4"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+# User-supplied reference implementations are not application source; preserve them verbatim.
+extend-exclude = ["docs/public_html", "docs/Admin_panel", "docs/Apify.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["src/leedbox"]
+
+# Flask-Admin ships no typing metadata; only its view decorators and base classes are untyped.
+[[tool.mypy.overrides]]
+module = ["leedbox.web.admin", "leedbox.web.content_admin", "leedbox.web.payment_admin", "leedbox.web.prompt_admin", "leedbox.web.store_admin", "leedbox.web.broadcast_admin", "leedbox.web.consultation_admin", "leedbox.web.agent_admin", "leedbox.web.finance_admin", "leedbox.web.legal_admin"]
+disallow_untyped_decorators = false
+disallow_subclassing_any = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = ["integration: requires a real PostgreSQL database"]

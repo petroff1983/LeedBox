@@ -1,0 +1,47 @@
+{% extends 'cabinet/base.html' %}
+{% block title %}Мои результаты{% endblock %}
+{% block content %}
+<!-- THESIS: Named prompts for different niches, chosen explicitly rather than the latest globally.
+OWN-WORLD: Existing light cabinet, blue links, responsive document tables.
+STORY: Choose a name, open one prompt, copy or download without an AI call.
+FIRST VIEWPORT: Page title, named prompt list; saved searches and result history below.
+FORM: Operate; precisely specified extension of the established cabinet.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance -->
+<h1>Мои результаты</h1>
+<p class="intro">Сохранённые статьи, заголовки и промпты. Открытие и копирование бесплатно.</p>
+<section id="my-prompts">
+<h2>Мои промпты</h2>
+<p>Выберите промпт под нужную тематику. Откроется только выбранный текст.</p>
+{% if prompts %}
+<table><thead><tr><th>Название</th><th>Дата</th><th>Действие</th></tr></thead><tbody>
+{% for prompt in prompts %}<tr>
+<td data-label="Название"><a href="{{ url_for('cabinet_agent_report', number=prompt.operation_id) }}">{{ prompt.name }}</a></td>
+<td data-label="Дата">{{ prompt.created_at.strftime('%d.%m.%Y') }}</td>
+<td data-label="Действие"><a href="{{ url_for('cabinet_agent_report', number=prompt.operation_id) }}">Открыть и скопировать</a></td>
+</tr>{% endfor %}</tbody></table>
+{% else %}<p class="empty">Промптов пока нет. Создайте первый в боте: «Агенты» → «Мои промпты» → «Создать новый промпт».</p>{% endif %}
+{% if prompts_page or prompts_next %}<nav class="pagination" aria-label="Страницы промптов">
+{% if prompts_page %}<a href="{{ url_for('cabinet_agents', prompts_page=prompts_page - 1, results_page=results_page) }}#my-prompts">← Предыдущие</a>{% endif %}
+<span>Страница {{ prompts_page + 1 }}</span>
+{% if prompts_next %}<a href="{{ url_for('cabinet_agents', prompts_page=prompts_page + 1, results_page=results_page) }}#my-prompts">Следующие →</a>{% endif %}
+</nav>{% endif %}
+<p class="muted">Создание и переименование: в боте «Агенты» → «Мои промпты».</p>
+</section>
+<h2>Подборки статей</h2>
+{% if searches %}<ul>{% for search in searches %}<li><a href="{{ url_for('cabinet_dzen_search', token=search.token) }}">{{ search.report.get('slug', 'Канал Дзен') }} · {{ search.report.posts|length }} статей</a><span class="secondary">{{ search.created_at.strftime('%d.%m.%Y %H:%M') }} UTC</span></li>{% endfor %}</ul>{% else %}<p class="empty">Подборок пока нет. Запустите анализ канала в боте.</p>{% endif %}
+<section id="agent-results">
+<h2>Результаты агентов</h2>
+{% if not rows %}<p class="empty">{% if results_page %}На этой странице результатов нет. Вернитесь к более новым.{% else %}Готовых результатов пока нет. Создайте заголовки или промпт в боте.{% endif %}</p>{% else %}
+<table><thead><tr><th>Результат</th><th>Дата</th><th>Действие</th></tr></thead><tbody>
+{% for row in rows %}<tr>
+<td data-label="Результат">{% if row.snapshot.get('workflow') == 'competitor' %}Ссылки и метрики конкурента<span class="secondary">{{ row.snapshot.get('url', '') }}</span>{% elif row.snapshot.get('purpose', '').startswith('lead_magnet') %}{{ 'Темы для лид-магнитов' if row.result.get('output_kind') == 'ideas' else 'Пять лид-магнитов' }}<span class="secondary">{{ 'После критика' if row.snapshot.get('purpose') == 'lead_magnet_revision' else 'Первые варианты' }}</span>{% elif row.snapshot.get('content_phase') == 'analysis' %}Анализ постов{% elif row.snapshot.get('purpose') == 'content' %}Готовые посты{% elif row.snapshot.get('purpose') == 'image_prompts' %}Промпты для картинок<span class="secondary">{{ row.snapshot.get('inputs', {}).get('headings', ['Статья'])[0] }}</span>{% elif row.snapshot.get('purpose') == 'writing_profile' %}Промпт для статей{% else %}Заголовки<span class="secondary">{{ row.snapshot.get('inputs', {}).get('selected', {}).get('title', 'Статья Дзен') }}</span>{% endif %}</td>
+<td data-label="Дата">{{ row.created_at.strftime('%d.%m.%Y %H:%M') }} UTC</td>
+<td data-label="Действие"><a href="{{ url_for('cabinet_agent_report', number=row.id) }}">Открыть</a></td>
+</tr>{% endfor %}</tbody></table>{% endif %}
+{% if results_page or results_next %}<nav class="pagination" aria-label="Страницы результатов агентов">
+{% if results_page %}<a href="{{ url_for('cabinet_agents', results_page=results_page - 1, prompts_page=prompts_page) }}#agent-results">← Новее</a>{% endif %}
+<span>Страница {{ results_page + 1 }}</span>
+{% if results_next %}<a href="{{ url_for('cabinet_agents', results_page=results_page + 1, prompts_page=prompts_page) }}#agent-results">Старее →</a>{% endif %}
+</nav>{% endif %}
+</section>
+{% endblock %}

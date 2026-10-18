@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Переход к оплате</title><link rel="stylesheet" href="{{ url_for('static', filename='owner.css') }}"></head>
+<body class="login payment-handoff">
+<!-- THESIS: transfer a confirmed order to Robokassa without a long query string.
+OWN-WORLD: native semantic HTML transport page, not a new payment design.
+STORY: inspect order number, continue to the external provider.
+FIRST VIEWPORT: heading, no-card-data explanation and one submit button.
+FORM: narrow technical handoff, no theme replacement.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance. -->
+<main class="login-panel"><h1>Оплата заказа №{{ number }}</h1><p>Форма оплаты откроется на Robokassa. LeedBox не запрашивает реквизиты карты.</p>
+<form action="https://auth.robokassa.ru/Merchant/Index.aspx" method="post">
+{% for name,value in fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+<button type="submit">Перейти на Robokassa</button>
+</form></main></body></html>

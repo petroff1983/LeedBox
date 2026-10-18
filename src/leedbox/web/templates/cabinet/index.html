@@ -1,0 +1,59 @@
+{% extends 'cabinet/base.html' %}
+{% macro material_table(items) %}
+<table class="materials"><caption class="sr-only">Сравнение лид-магнитов за выбранный период</caption><thead><tr><th scope="col">Лид-магнит</th><th scope="col">Запуски</th><th scope="col">Люди с запуском</th><th scope="col">Выдачи</th><th scope="col">Получатели</th></tr></thead>
+<tbody>{% for row in items %}<tr>
+  <td data-label="Лид-магнит"><a href="{{ link(view='sources', material=row.id, page=0, source='', q='') }}">{{ row.title }}</a>{% if row.archived %}<span class="muted status">Удалён из библиотеки · история</span>{% endif %}</td>
+  <td data-label="Запуски">{{ row.starts }}</td><td data-label="Люди с запуском">{{ row.people }}</td><td data-label="Выдачи">{{ row.deliveries }}</td><td data-label="Получатели">{{ row.recipients }}</td>
+</tr>{% endfor %}</tbody></table>
+{% endmacro %}
+{% macro source_table(items) %}
+<table class="sources"><caption class="sr-only">Источники запусков по отмеченным ссылкам</caption><thead><tr><th scope="col">Площадка и публикация</th><th scope="col">Лид-магнит</th><th scope="col">Люди</th><th scope="col">Запуски</th></tr></thead>
+<tbody>{% for row in items %}<tr>
+  <td data-label="Публикация"><strong>{{ row.source }}</strong><span class="secondary">{{ row.campaign }}</span>{% if row.external_url %}<a class="publication" href="{{ row.external_url }}" target="_blank" rel="noopener noreferrer">Открыть публикацию</a>{% endif %}</td>
+  <td data-label="Лид-магнит">{{ row.title }}</td><td data-label="Люди">{{ row.people }}</td><td data-label="Запуски">{{ row.starts }}</td>
+</tr>{% endfor %}</tbody></table>
+{% endmacro %}
+{% block content %}
+<h1>Моя аудитория</h1>
+<p class="intro">Посмотрите, какие подарки привлекают людей и из каких публикаций приходят запуски.</p>
+<nav class="tabs" aria-label="Разделы кабинета">
+{% for code, title in [('overview','Обзор'),('materials','Лид-магниты'),('sources','Источники'),('people','Люди')] %}
+  <a href="{{ link(view=code, page=0, source='', q='') }}" {% if view == code %}aria-current="page"{% endif %}>{{ title }}</a>
+{% endfor %}</nav>
+<form class="filters" method="get" action="{{ url_for('cabinet_index') }}">
+  <input type="hidden" name="view" value="{{ view }}"><input type="hidden" name="sort" value="{{ sort }}">
+  <label>Период<select name="period">{% for value, title in [('today','Сегодня'),('7','7 дней'),('30','30 дней'),('all','Всё время'),('custom','Свои даты')] %}<option value="{{ value }}" {% if value == period %}selected{% endif %}>{{ title }}</option>{% endfor %}</select></label>
+  <label>Лид-магнит<select name="material"><option value="">Все лид-магниты</option>{% for item in options %}<option value="{{ item.id }}" {% if params.material == item.id|string %}selected{% endif %}>{{ item.title }}{% if item.archived %} (история){% endif %}</option>{% endfor %}</select></label>
+  {% if view in ['sources','people'] %}<label>Площадка<select name="source"><option value="">Все площадки</option>{% for value in platforms %}<option {% if params.source == value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></label>{% endif %}
+  {% if view == 'people' %}<label>Telegram ID<input name="q" inputmode="numeric" maxlength="19" value="{{ params.q }}" placeholder="Например, 123456789"></label>{% endif %}
+  <div class="filter-actions"><button type="submit">Показать</button><a href="{{ url_for('cabinet_index', view=view) }}">Сбросить</a></div>
+  <details class="dates" {% if period == 'custom' %}open{% endif %}><summary>Свои даты · UTC</summary><div><label>С<input type="date" name="start" value="{{ params.start }}"></label><label>По<input type="date" name="end" value="{{ params.end }}"></label><span class="muted">Выберите период «Свои даты».</span></div></details>
+</form>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+<div class="report-heading"><h2>{{ {'overview':'Общая картина','materials':'Сравнение подарков','sources':'Откуда приходят люди','people':'Получатели и посетители'}[view] }}</h2><p class="muted">{{ selected_period.label }} · время UTC</p></div>
+{% if view in ['overview','materials','sources'] %}<div class="sorting" aria-label="Сортировка">Рейтинг:
+{% for code, title in ([('people','по людям'),('starts','по запускам')] if view == 'sources' else [('people','по людям с запуском'),('recipients','по получателям')]) %}
+<a href="{{ link(sort=code, page=0) }}" {% if sort == code %}aria-current="true"{% endif %}>{{ title }}</a>{% endfor %}</div>{% endif %}
+{% if view == 'overview' %}
+  {% if summary %}<dl class="metrics"><div><dt>Все люди</dt><dd>{{ summary.people }}</dd></div><div><dt>Запуски подарков</dt><dd>{{ summary.starts }}</dd></div><div><dt>Успешные выдачи</dt><dd>{{ summary.deliveries }}</dd></div><div><dt>Уникальные получатели</dt><dd>{{ summary.recipients }}</dd></div></dl>{% endif %}
+  <p class="muted">Один человек учитывается в общей аудитории один раз, даже если интересовался несколькими подарками.</p>
+  <section><div class="section-heading"><h3>Лидеры среди лид-магнитов</h3><a href="{{ link(view='materials', page=0) }}">Все лид-магниты</a></div>
+  {% if top_materials %}{{ material_table(top_materials) }}{% else %}<p class="empty">Пока нет лид-магнитов. Создайте первый подарок в боте.</p>{% endif %}</section>
+  <section><div class="section-heading"><h3>Источники с наибольшей аудиторией</h3><a href="{{ link(view='sources', page=0, sort='people') }}">Все источники</a></div>
+  {% if top_sources %}{{ source_table(top_sources) }}{% else %}<p class="empty">Источников пока нет. В боте откройте «Мои лид-магниты» → «Источники» и создайте ссылку для статьи или видео.</p>{% endif %}</section>
+{% elif view == 'materials' %}
+  {% if rows %}{{ material_table(rows) }}{% else %}<p class="empty">Лид-магнитов по выбранному фильтру нет.</p>{% endif %}
+{% elif view == 'sources' %}
+  {% if rows %}{{ source_table(rows) }}{% else %}<p class="empty">Источников по выбранному фильтру нет. Создайте ссылку для публикации через «Источники» в библиотеке бота.</p>{% endif %}
+{% else %}
+  <p class="muted">Первый и последний отмеченные источники, полученные подарки — за всё время. Даты активности — за выбранный период. Имена, интересы и контакты бот не собирает.</p>
+  {% if rows %}<table class="people"><caption class="sr-only">Люди и история их интереса к подаркам</caption><thead><tr><th scope="col">Telegram ID</th><th scope="col">Активность · UTC</th><th scope="col">Источники за всё время</th><th scope="col">Полученные подарки</th></tr></thead><tbody>
+    {% for row in rows %}<tr><td data-label="Telegram ID"><strong>{{ row.person }}</strong></td><td data-label="Активность"><span class="secondary">Первый: {{ row.first.strftime('%d.%m.%Y %H:%M') }}</span><span class="secondary">Последний: {{ row.last.strftime('%d.%m.%Y %H:%M') }}</span></td>
+      <td data-label="Источники"><span class="secondary">Первый: {{ row.first_source|default('Источник не отмечен') }}</span><span class="secondary">Последний: {{ row.last_source|default('Источник не отмечен') }}</span></td>
+      <td data-label="Подарки">{% for title in row.gifts %}<span class="secondary">{{ title }}</span>{% else %}<span class="muted">Выдача пока не подтверждена</span>{% endfor %}</td></tr>{% endfor %}
+  </tbody></table>{% else %}<p class="empty">Людей по выбранным фильтрам пока нет. Попробуйте другой период или сбросьте фильтры.</p>{% endif %}
+{% endif %}
+{% if view != 'overview' %}<nav class="pagination" aria-label="Страницы списка">{% if page > 0 %}<a href="{{ link(page=page-1) }}">Предыдущая</a>{% endif %}<span>Страница {{ page+1 }}</span>{% if has_next %}<a href="{{ link(page=page+1) }}">Следующая</a>{% endif %}</nav>{% endif %}
+<aside class="method"><h3>Как читать показатели</h3><p><strong>Запуск</strong> — человек открыл ссылку подарка и запустил бот. <strong>Люди</strong> — уникальные Telegram ID, повторы не увеличивают число людей. <strong>Выдача</strong> — подтверждённая отправка подарка; повторная отправка считается отдельно.</p>
+<p>Источник определяется по метке ссылки, а не автоматически: пересланная ссылка сохранит исходную метку. Без метки статья или видео неизвестны. Просмотры публикаций не учитываются. Выдачи по конкретному источнику не приписываются: текущие данные не связывают их с публикацией. Уникальных людей разных строк нельзя складывать.</p></aside>
+{% endblock %}

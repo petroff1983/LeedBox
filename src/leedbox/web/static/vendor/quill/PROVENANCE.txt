@@ -1,0 +1,2 @@
+Quill 2.0.3; official npm registry; BSD-3-Clause.
+sha512-xEYQBqfYx/sfb33VJiKnSJp8ehloavImQ2A6564GAbqG55PGw1dAWUn1MUbQB62t0azawUS2CZZhWCjO8gRvTw==

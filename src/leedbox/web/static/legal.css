@@ -1,0 +1,34 @@
+:root { --legal-ink:#202832; --legal-muted:#566273; --legal-line:#d7dde4; --legal-accent:#195ca8; }
+.legal-public { margin:0; color:var(--legal-ink); background:#fff; font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+.legal-public header,.legal-public main,.legal-public footer { max-width:76ch; margin:auto; padding:1.5rem; }
+.legal-public header { border-bottom:1px solid var(--legal-line); }
+.legal-public h1 { font-size:1.9rem; line-height:1.25; margin:1.5rem 0 1rem; overflow-wrap:anywhere; }
+.legal-public h2 { font-size:1.35rem; margin:2rem 0 .75rem; }
+.legal-public footer { border-top:1px solid var(--legal-line); margin-top:3rem; color:var(--legal-muted); }
+.legal-public a { color:var(--legal-accent); text-underline-offset:3px; }
+.legal-public :focus-visible { outline:3px solid #1976c9; outline-offset:3px; }
+.legal-public ::selection { background:#d6e7fa; color:var(--legal-ink); }
+.legal-meta { color:var(--legal-muted); }
+.legal-copy { line-height:1.65; overflow-wrap:anywhere; max-width:76ch; }
+.legal-copy p { margin:.8rem 0; }
+.legal-copy blockquote { margin:1.25rem 0; padding:.75rem 1rem; border:1px solid var(--legal-line); }
+.legal-copy table { border-collapse:collapse; display:block; max-width:100%; overflow-x:auto; }
+.legal-copy th,.legal-copy td { border:1px solid var(--legal-line); padding:.6rem; min-width:5rem; }
+.legal-copy pre { white-space:pre-wrap; }
+.legal-documents { list-style:none; padding:0; }
+.legal-documents li { padding:1rem 0; border-bottom:1px solid var(--legal-line); }
+.legal-documents span { display:block; color:var(--legal-muted); font-size:1rem; }
+.legal-form { max-width:960px; }
+.legal-form [hidden], [hidden].legal-modes { display:none !important; }
+.legal-modes { margin:1rem 0; }
+.legal-source { font-family:ui-monospace,Consolas,monospace; min-height:28rem; }
+#legal-toolbar { display:flex; flex-wrap:wrap; gap:.4rem; padding:.75rem; border:1px solid var(--legal-line); background:#f4f6f8; }
+#legal-toolbar button,#legal-toolbar select { font:inherit; min-height:38px; padding:.25rem .6rem; background:white; border:1px solid var(--legal-line); border-radius:.25rem; color:var(--legal-ink); }
+#legal-toolbar button.ql-active { color:white; background:var(--legal-accent); }
+#legal-editor { border:1px solid var(--legal-line); border-top:0; font:inherit; }
+#legal-editor .ql-editor { min-height:25rem; font:inherit; padding:1.25rem; }
+.legal-link { display:flex; align-items:center; flex-wrap:wrap; gap:.6rem; margin:.75rem 0 1.5rem; }
+.legal-link input { max-width:100%; min-height:38px; border:1px solid var(--legal-line); padding:.3rem .6rem; }
+.legal-preview { padding:1.25rem; border:1px solid var(--legal-line); margin:1.5rem 0; }
+.ql-align-center { text-align:center; } .ql-align-right { text-align:right; } .ql-align-justify { text-align:justify; }
+@media(max-width:600px) { .legal-public h1 { font-size:1.55rem; } .legal-public main,.legal-public header,.legal-public footer { padding:1rem; } #legal-editor .ql-editor { padding:.75rem; } }

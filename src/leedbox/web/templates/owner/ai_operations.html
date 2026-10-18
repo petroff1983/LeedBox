@@ -1,0 +1,20 @@
+{% extends 'owner/master.html' %}
+{% from 'owner/report_filters.html' import period_fields %}
+{% block body %}
+<h1>{{ title }}</h1>
+<p class="muted">Расход API, а не цена продажи. В журнале также видны бесплатные попытки, безлимит владельца и ошибочные операции. Период — по дате создания операции.</p>
+<form method="get" class="filters report-filters" aria-label="Фильтры AI-операций">
+{{ period_fields(report, periods) }}
+{% for name,label,choices,current in [('feature','Агент / операция',features,feature),('status','Статус',statuses,status),('billing','Способ списания',billing_modes,billing)] %}
+<div class="filter-field"><label for="{{ name }}">{{ label }}</label><select class="form-control" id="{{ name }}" name="{{ name }}"><option value="">Все</option>{% for key,value in choices.items() %}<option value="{{ key }}" {% if current == key %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></div>
+{% endfor %}
+<div class="filter-field"><label for="telegram">Telegram ID эксперта</label><input class="form-control" id="telegram" name="telegram" value="{{ telegram }}" inputmode="numeric" maxlength="19"></div>
+<button type="submit" class="btn btn-primary">Показать</button><a href="{{ request.path }}">Сбросить</a>
+</form>
+<p class="muted">{{ report.start.strftime('%d.%m.%Y %H:%M') }} — {{ report.end.strftime('%d.%m.%Y %H:%M') }} UTC. {{ 'Тестовый' if report.test else 'Основной' }} учёт.</p>
+{% if rows %}<div class="table-scroll" tabindex="0" role="region" aria-label="AI-операции"><table class="table ai-operations-table"><thead><tr>{% for column in columns %}<th scope="col">{{ column }}</th>{% endfor %}</tr></thead><tbody>{% for row in rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+{% else %}<p>По выбранным условиям операций нет. Измените период или сбросьте фильтры.</p>{% endif %}
+{% set filters = '&period=' ~ report.period ~ '&mode=' ~ report.mode ~ '&feature=' ~ feature ~ '&status=' ~ status ~ '&billing=' ~ billing ~ '&telegram=' ~ telegram %}
+<nav class="pagination-row" aria-label="Страницы операций">{% if page > 0 %}<a href="?page={{ page-1 }}{{ filters }}">← Назад</a>{% endif %}<span>Страница {{ page+1 }}</span>{% if more %}<a href="?page={{ page+1 }}{{ filters }}">Далее →</a>{% endif %}</nav>
+<p><a href="{{ root }}/?period={{ report.period }}&amp;mode={{ report.mode }}">Вернуться к обзору</a></p>
+{% endblock %}

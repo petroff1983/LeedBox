@@ -1,0 +1,51 @@
+{% extends 'owner/master.html' %}
+{% from 'owner/report_filters.html' import period_fields %}
+{% block body %}
+<!-- THESIS: an actionable operational overview, not decorative KPIs.
+OWN-WORLD: existing Bootstrap4, system type, blue links and neutral separators.
+STORY: resolve exceptions, inspect activity and expenses, open the source journal.
+FIRST VIEWPORT: heading, filters, attention queue before compact metrics.
+FORM: approved, precisely scoped extension of the owner console; no new identity.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance. -->
+<h1>Панель владельца</h1>
+<p><a href="{{ root }}/legal/">Документы и согласия</a> — HTML-редактор, публикации и подтверждения в боте.</p>
+<p><a href="{{ root }}/finance/">Финансы и прибыль</a> · <a href="{{ root }}/finance/prices">Цены AI-кредитов</a> · <a href="{{ root }}/finance/providers">Остатки и лимиты API</a></p>
+<p class="muted">Обзор работы LeedBox. Режим сервиса: <a href="{{ root }}/access/">{{ 'бесплатный' if state == 'free' else 'платный' }}</a>.</p>
+<form method="get" class="filters report-filters" aria-label="Параметры обзора">{{ period_fields(report, periods) }}<button class="btn btn-primary" type="submit">Показать</button></form>
+<p class="muted report-caption">{{ report.start.strftime('%d.%m.%Y %H:%M') }} — {{ report.end.strftime('%d.%m.%Y %H:%M') }} UTC. Платежи и AI: {{ 'тестовый' if report.test else 'основной' }} учёт.</p>
+<section class="overview-attention" aria-labelledby="attention-title">
+<h2 id="attention-title">Требует внимания</h2>
+{% if alerts %}<ul class="attention-list">{% for item in alerts %}<li><div><strong>{{ item.title }}</strong><p class="muted">{{ item.detail }}</p></div><a href="{{ item.url }}">{{ item.action }}</a></li>{% endfor %}</ul>
+{% else %}<p>В журналах нет нерешённых проблем указанного типа. Состояние интеграций — ниже.</p>{% endif %}
+<p class="muted">Очередь показывает текущие проблемы независимо от выбранного периода.</p></section>
+<section aria-labelledby="activity-title"><h2 id="activity-title">Активность за период</h2>
+<dl class="overview-metrics">
+{% for key,label,note in [('new','Новые эксперты','Вся база сервиса, не получатели подарков'),('active','Активные эксперты','Инструменты, заявки и AI этого бота'),('completed','Завершённые AI-операции','Генерация и поиск'),('failed','Ошибки AI-операций','В том числе без списания у клиента'),('deliveries','Успешные выдачи ЛМ','События этого бота'),('errors','Ошибки бота','Зарегистрированные события')] %}
+<div><dt>{{ label }}</dt><dd><strong>{{ metrics[key] }}</strong>{% if report.period != 'all' %}<span>Предыдущий равный период: {{ previous[key] }}</span>{% endif %}<small>{{ note }}</small></dd></div>
+{% endfor %}</dl>
+<p class="muted">Активность и выдачи — события бота без разделения на тестовый и основной учёт. Активность не включает простое открытие меню. Один человек может быть экспертом и получателем.</p></section>
+<section aria-labelledby="payments-title"><h2 id="payments-title">Внешние оплаты</h2>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Внешние оплаты"><table class="table"><thead><tr><th scope="col">Валюта</th><th scope="col">Подтверждено платежей</th><th scope="col">Получено</th><th scope="col">Возвращено</th></tr></thead><tbody>
+{% for row in payments %}<tr><th scope="row">{{ 'Рубли' if row.currency == 'RUB' else 'Telegram Stars' }}</th><td>{{ row.count }}</td><td>{{ row.received }} {{ '₽' if row.currency == 'RUB' else 'XTR' }}</td><td>{{ row.refunded }} {{ '₽' if row.currency == 'RUB' else 'XTR' }}</td></tr>{% endfor %}
+</tbody></table></div>
+<p class="muted">Получено — по дате подтверждения; возвраты — по дате возврата, в том числе за старые покупки. Пополнения учитываются один раз: внутренние списания повторно не прибавляются. Это не прибыль, комиссии и прочие расходы здесь не вычтены.</p>
+<p><a href="{{ root }}/payments/">Открыть журнал платежей</a></p></section>
+<section aria-labelledby="expenses-title"><h2 id="expenses-title">Расходы по агентам</h2>
+<p>Записанная оценка API: <strong>{{ cost }} ₽</strong></p>
+{% if expenses %}<div class="table-scroll" tabindex="0" role="region" aria-label="Расходы по агентам"><table class="table"><thead><tr><th scope="col">Агент / операция</th><th scope="col">Запуски</th><th scope="col">Завершено</th><th scope="col">Ошибки</th><th scope="col">Не завершено</th><th scope="col">Вход / выход</th><th scope="col">Оценка, ₽</th></tr></thead><tbody>
+{% for row in expenses %}<tr><th scope="row"><a href="{{ root }}/agents/operations?period={{ report.period }}&amp;mode={{ report.mode }}&amp;feature={{ row.code }}">{{ row.name }}</a></th><td>{{ row.calls }}</td><td>{{ row.completed }}</td><td>{{ row.failed }}</td><td>{{ row.pending }}</td><td>{{ row.incoming }} / {{ row.outgoing }}</td><td>{{ row.cost }}</td></tr>{% endfor %}
+</tbody></table></div>{% else %}<p>За этот период AI-операций нет. После запуска агентов здесь появятся расходы и ссылки на операции.</p>{% endif %}
+<p class="muted">Включены бесплатные попытки, безлимит владельца и записанный расход неудачных запросов. Расценки и курс берутся из сохранённых операций. Поиск Zenstat и сбор Apify показаны отдельно от генерации. Неопределённые и незавершённые запросы могут иметь ещё не записанный расход. Период — по дате создания операции.</p>
+<p><a href="{{ root }}/agents/operations?period={{ report.period }}&amp;mode={{ report.mode }}">Все AI-операции и фильтры</a></p></section>
+<section aria-labelledby="integrations-title"><h2 id="integrations-title">Состояние интеграций</h2>
+<p class="muted">Открытие обзора не вызывает внешние API и не расходует квоты. Наличие ключа не означает, что интеграция работает.</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Состояние интеграций"><table class="table"><thead><tr><th scope="col">Интеграция</th><th scope="col">Состояние</th><th scope="col">Последняя проверка</th><th scope="col">Подробности</th></tr></thead><tbody>
+{% for row in integrations %}<tr><th scope="row"><a href="{{ row.url }}">{{ row.name }}</a></th><td>{{ row.status }}</td><td>{{ row.checked }}</td><td>{{ row.detail }}</td></tr>{% endfor %}
+</tbody></table></div></section>
+<section aria-labelledby="audit-title"><h2 id="audit-title">Последние действия владельцев</h2>
+<p class="muted">Общая история сервиса, независимо от периода. Содержимое брифов и секреты не выводятся.</p>
+{% if audit %}<ul class="overview-audit">{% for action,at in audit %}<li><time datetime="{{ at.isoformat() }}">{{ at.strftime('%d.%m %H:%M') }} UTC</time> <span>{{ action }}</span></li>{% endfor %}</ul>{% else %}<p>Действий владельцев пока нет.</p>{% endif %}
+<p><a href="{{ root }}/history/audit">Открыть аудит</a></p></section>
+<section><h2>Рабочие разделы</h2><ul class="work-links"><li><a href="{{ root }}/requests/">Обработать заявки</a></li><li><a href="{{ root }}/services/">Управлять услугами</a></li><li><a href="{{ root }}/ai/">Промпты и агенты</a></li><li><a href="{{ root }}/access/">Цена и пробный период</a></li><li><a href="{{ root }}/access/users">Продлить доступ эксперту</a></li></ul></section>
+<p class="muted">Контент и настройки применяются без перезапуска. Откат версии не отменяет уже выполненные действия.</p>
+{% endblock %}

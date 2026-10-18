@@ -1,0 +1,14 @@
+{% extends 'owner/master.html' %}
+{% block body %}
+<a href="{{ root }}/">← Обзор</a><h1>Безопасность</h1>
+<p class="muted">{% if initial %}Перед первым входом в панель замените начальный пароль.{% else %}Смените логин и пароль владельца.{% endif %} После сохранения все сессии завершатся. Потребуется повторный вход.</p>
+{% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+<form method="post" class="editor">
+<input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="revision" value="{{ revision }}">
+<div class="form-group"><label for="current">Текущий пароль</label><input class="form-control" id="current" type="password" name="current_password" autocomplete="current-password" maxlength="128" required></div>
+<div class="form-group"><label for="username">Новый логин</label><input class="form-control" id="username" name="username" value="{{ username }}" autocomplete="username" minlength="3" maxlength="64" aria-describedby="login-hint" required><small id="login-hint">3–64 латинских буквы, цифры, точка, дефис или подчёркивание.</small></div>
+<div class="form-group"><label for="new">Новый пароль</label><input class="form-control" id="new" type="password" name="new_password" autocomplete="new-password" minlength="15" maxlength="128" aria-describedby="password-hint" required><small id="password-hint">15–128 символов. Допустимы пробелы и Unicode. Пароль должен отличаться от текущего.</small></div>
+<div class="form-group"><label for="confirmation">Повторите новый пароль</label><input class="form-control" id="confirmation" type="password" name="confirmation" autocomplete="new-password" minlength="15" maxlength="128" required></div>
+<div class="confirmation"><label class="check"><input type="checkbox" name="confirmed" value="1" required> Подтверждаю смену учётных данных и завершение всех сессий</label></div>
+<button class="btn btn-primary" type="submit">Сохранить и выйти</button></form>
+{% endblock %}

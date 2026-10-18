@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Моя аудитория{% endblock %} · LeedBox</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='cabinet.css') }}">
+</head>
+<body>
+<!-- THESIS: Compare real gift and publication results, not decorative analytics cards.
+OWN-WORLD: Existing LeedBox light operational world; slate text, blue controls, white tables, system UI type.
+STORY: Expert enters privately, compares gifts, identifies articles/videos and checks people.
+FIRST VIEWPORT: Brand and logout above four tabs, compact filters, a labeled metric strip then ranked tables.
+FORM: Specified local extension, code-led, no seed; tables become labeled phone records.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance -->
+<a class="skip" href="#main">К содержимому</a>
+<div class="shell">
+  <header class="top"><a class="brand" href="{{ url_for('cabinet_index') }}">LeedBox</a><span>Кабинет эксперта</span>
+  {% if g.expert_owner is defined %}<a href="{{ url_for('cabinet_agents') }}">Агенты</a><span>Остаток: {{ '{:,}'.format(g.ai_balance).replace(',', ' ') }} {{ 'кредитов' if g.ai_credit_mode else 'токенов' }}</span>{% endif %}
+  {% if csrf and view is defined %}<form method="post" action="{{ url_for('cabinet_logout') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="quiet" type="submit">Выйти</button></form>{% endif %}</header>
+  <main id="main">{% block content %}{% endblock %}</main>
+  <footer>Только ваши данные. Доступ к админке владельца — отдельный.</footer>
+</div>
+{% block scripts %}{% endblock %}
+</body></html>

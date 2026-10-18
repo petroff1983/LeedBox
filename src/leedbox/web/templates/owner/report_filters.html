@@ -1,0 +1,4 @@
+{% macro period_fields(report, periods) %}
+<div class="filter-field"><label for="period">Период</label><select class="form-control" id="period" name="period">{% for key,label in periods.items() %}<option value="{{ key }}" {% if report.period == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+<div class="filter-field"><label for="mode">Учёт платежей и AI</label><select class="form-control" id="mode" name="mode"><option value="test" {% if report.test %}selected{% endif %}>Тестовый</option><option value="live" {% if not report.test %}selected{% endif %}>Основной</option></select></div>
+{% endmacro %}

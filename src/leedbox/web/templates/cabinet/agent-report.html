@@ -1,0 +1,116 @@
+{% extends 'cabinet/base.html' %}
+{% block title %}Результат агента{% endblock %}
+{% block content %}
+<!-- THESIS: One reusable channel prompt, separate from headline analysis.
+OWN-WORLD: Existing light cabinet, blue controls, readable single-column document.
+STORY: See cost, copy saved prompt, substitute any headline without another AI call.
+FIRST VIEWPORT: Back link, title, receipt, prompt instructions and copy control.
+FORM: Precisely specified local extension; no new visual identity.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance -->
+<p><a href="{{ url_for('cabinet_agents') }}">← История агентов</a></p>
+<h1>{{ 'Анализ конкурента' if row.snapshot.get('workflow') == 'competitor' else 'Анализ постов' if row.snapshot.get('content_phase') == 'analysis' else 'Пять тем для лид-магнитов' if result and result.get('output_kind') == 'ideas' else 'Пять лид-магнитов' if row.snapshot.get('purpose', '').startswith('lead_magnet') else 'Готовые посты' if row.snapshot.get('purpose') == 'content' else 'Промпты для картинок' if row.snapshot.get('purpose') == 'image_prompts' else 'Промпт для статей' if row.snapshot.get('purpose') == 'writing_profile' else 'Заголовки' }}</h1>
+{% if row.snapshot.get('search_token') %}<p><a href="{{ url_for('cabinet_dzen_search', token=row.snapshot.search_token) }}">← Исходная подборка статей</a></p>{% endif %}
+<p class="muted">{{ row.created_at.strftime('%d.%m.%Y %H:%M') }} UTC · открытие без списания токенов.</p>
+{% if result %}
+{% if result.get('source_links') %}
+<p>{{ result.channel }} · получено записей от провайдера: {{ result.checked }}. Показано публикаций: {{ result.source_links|length }}.</p>
+<p>Топ ограниченной выборки, не всей истории канала. Метрики — снимок на момент сбора; отсутствие данных не считается нулём.</p>
+<p><a href="{{ url_for('cabinet_agent_prompt', number=row.id) }}">Скачать ссылки и метрики .md</a></p>
+{% for post in result.source_links %}<section><h2>Публикация {{ loop.index }}</h2>
+<p><a href="{{ post.url }}" target="_blank" rel="noopener noreferrer">{{ post.url }}</a></p>
+<p>Дата: {{ post.published[:10] }}</p>
+<dl class="summary">{% for key, value in post.metrics.items() %}<dt>{{ {'views':'Просмотры','likes':'Лайки','replies':'Ответы','reposts':'Репосты','quotes':'Цитирования','reactions':'Реакции'}.get(key, key) }}</dt><dd>{{ value if value is not none else 'Нет данных' }}</dd>{% endfor %}</dl>
+</section>{% endfor %}
+{% elif result.get('analysis_only') %}
+<p>Изучено постов/фрагментов: {{ result.analysis.source_count }}. Площадка: {{ {'telegram':'Telegram', 'threads':'Threads', 'mixed':'Telegram и Threads', 'unknown':'не определена по текстам'}.get(result.analysis.source_platform, 'не определена') }}.</p>
+<h2>Темы исходных постов</h2><ol>{% for topic in result.analysis.topics %}<li>{{ topic.title }}</li>{% endfor %}</ol>
+<h2>Паттерны и подача</h2><ul>{% for pattern in result.analysis.patterns %}<li>{{ pattern.name }}</li>{% endfor %}</ul>
+<p>Вернитесь в бота и задайте количество и темы новых постов. Этот анализ сохранён, повторно оплачивать его не нужно.</p>
+<p><a href="{{ url_for('cabinet_agent_prompt', number=row.id) }}">Скачать анализ .md</a></p>
+{% elif result.get('lead_magnets') %}
+<p>{{ 'Окончательные варианты после критика и доработки.' if result.get('version') == 'final' else 'Первоначальные пять вариантов. В боте их можно одобрить или отправить на критику.' }}</p>
+{% if result.get('output_kind') == 'ideas' %}<p>Это темы и описания пользы. Сам материал подготовьте самостоятельно.</p>{% endif %}
+<p><a href="{{ url_for('cabinet_agent_prompt', number=row.id) }}">Скачать все материалы .md</a></p>
+{% for item in result.lead_magnets %}<section>
+<h2>{{ item.id }}. {{ item.title }}</h2>
+{% if item.get('description') %}
+<label for="lm-{{ item.id }}">Тема и описание</label>
+<textarea class="agent-prompt" id="lm-{{ item.id }}" readonly rows="5">{{ item.title }}
+
+{{ item.description }}
+
+Формат: {{ item.format }}</textarea>
+<div class="filter-actions"><button type="button" data-copy-target="lm-{{ item.id }}">Скопировать идею</button></div><p data-copy-status role="status" aria-live="polite"></p>
+{% else %}
+<p>{{ item.format }} · {{ item.benefit }}</p>
+<label for="lm-{{ item.id }}">Содержание материала</label>
+<textarea class="agent-prompt" id="lm-{{ item.id }}" readonly rows="10">{{ item.title }}
+
+{% for point in item.content %}• {{ point }}
+{% endfor %}</textarea>
+<div class="filter-actions"><button type="button" data-copy-target="lm-{{ item.id }}">Скопировать материал</button></div><p data-copy-status role="status" aria-live="polite"></p>
+<label for="lm-announcement-{{ item.id }}">Анонс получения</label>
+<textarea class="agent-prompt" id="lm-announcement-{{ item.id }}" readonly rows="4">{{ item.announcement }}</textarea>
+<div class="filter-actions"><button type="button" data-copy-target="lm-announcement-{{ item.id }}">Скопировать анонс</button></div><p data-copy-status role="status" aria-live="polite"></p>
+<p>{{ item.bridge }}</p>{% endif %}</section>{% endfor %}
+{% if result.get('critique') %}<details><summary>Замечания критика</summary><p>Моделируемая редакционная оценка, не отзывы реальных клиентов.</p>
+{% for entry in result.critique.critiques %}<h3>Материал {{ entry.id }}</h3><ul>{% for issue in entry.issues %}<li>{{ issue }}</li>{% endfor %}</ul><p>{{ entry.fix }}</p>{% endfor %}</details>{% endif %}
+{% elif result.get('posts') %}
+<p>Готовых публикаций: {{ result.posts|length }}. {% if result.get('target') == 'threads' %}Хук разместите первым постом, продолжения — ответами от своего аккаунта в указанном порядке. Каждая часть проверена на ограничение 500 символов.{% endif %}</p>
+<p><a href="{{ url_for('cabinet_agent_prompt', number=row.id) }}">Скачать все посты .md</a></p>
+{% for post in result.posts %}{% set post_index = loop.index %}
+<section><h2>Пост {{ post_index }}. {{ post.title }}</h2>
+{% for part in post.parts %}
+<label for="post-{{ post_index }}-{{ loop.index }}">{% if post.parts|length > 1 %}{{ 'Хук' if loop.first else 'Продолжение ' ~ (loop.index - 1) }}{% else %}Текст публикации{% endif %}</label>
+<textarea class="agent-prompt" id="post-{{ post_index }}-{{ loop.index }}" readonly rows="{{ 5 if post.parts|length > 1 else 12 }}">{{ part }}</textarea>
+<div class="filter-actions"><button type="button" data-copy-target="post-{{ post_index }}-{{ loop.index }}">{{ 'Скопировать часть' if post.parts|length > 1 else 'Скопировать пост' }}</button></div>
+<p data-copy-status role="status" aria-live="polite"></p>
+{% endfor %}
+{% if post.parts|length > 1 %}<label for="thread-{{ post_index }}">Вся ветка</label>
+<textarea class="agent-prompt" id="thread-{{ post_index }}" readonly rows="5">{{ post.parts|join('\n\n') }}</textarea>
+<div class="filter-actions"><button type="button" data-copy-target="thread-{{ post_index }}">Скопировать всю ветку</button></div><p data-copy-status role="status" aria-live="polite"></p>{% endif %}
+</section>{% endfor %}
+<details><summary>Паттерны и контент-план</summary>
+<h2>Паттерны</h2><ul>{% for pattern in result.get('analysis', {}).get('patterns', []) %}<li>{{ pattern.name }}</li>{% endfor %}</ul>
+<h2>Выбранные темы</h2>{% for topic in result.get('analysis', {}).get('topics', []) %}<section><h3>{{ topic.title }}</h3><p>{{ topic.format }} · {{ topic.goal }}</p><p>{{ topic.hook }}</p><p>{{ topic.cta }}</p></section>{% endfor %}
+</details>
+<details><summary>Исходные материалы ({{ result.get('sources', [])|length }})</summary>
+{% if result.get('source_mode') == 'link' %}<p>Топ ограниченной выборки, не всей истории канала. Метрики — снимок на момент сбора. Недоступные показатели не считаются нулём.</p>{% else %}<p>Примеры от пользователя: успешность и охваты без метрик не подтверждены.</p>{% endif %}
+{% for source in result.get('sources', []) %}<section><h3>Источник {{ loop.index }}</h3>
+{% if source.get('url') %}<p><a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">Открыть публикацию</a></p>{% endif %}
+{% if source.get('thread_incomplete') %}<p>Продолжения этой ветки могли быть получены не полностью.</p>{% endif %}
+{% if source.get('metrics') %}<p>{{ source.metrics }}</p>{% endif %}
+<pre>{{ source.text }}</pre></section>{% endfor %}</details>
+{% elif result.get('images') %}
+<p>Промпты на английском: фотореализм, формат 4:3, без надписей. Вставьте выбранный промпт в нейросеть для создания изображений.</p>
+<p><a href="{{ url_for('cabinet_agent_prompt', number=row.id) }}">Скачать все промпты .md</a></p>
+{% for image in result.images %}<section>
+<h2>{{ loop.index }}. {{ image.heading }}</h2>
+<label for="image-{{ loop.index }}">Промпт для изображения</label>
+<textarea class="agent-prompt" id="image-{{ loop.index }}" readonly rows="5">{{ image.prompt }}</textarea>
+<div class="filter-actions"><button type="button" data-copy-target="image-{{ loop.index }}">Скопировать промпт</button></div>
+<p data-copy-status role="status" aria-live="polite"></p>
+</section>{% endfor %}
+{% elif result.get('prompt') %}
+<section>
+<h2>Мой промпт для статей</h2>
+<p>Замените <strong>[ВСТАВЬТЕ ЗАГОЛОВОК]</strong> любым выбранным заголовком и отправьте в свою нейросеть. Статью пишет она, а не этот агент. Повторное копирование без списаний.</p>
+<div class="filter-actions"><button type="button" data-copy-target="saved-prompt">Скопировать промпт</button><a href="{{ url_for('cabinet_agent_prompt', number=row.id) }}">Скачать .md</a></div>
+<p data-copy-status role="status" aria-live="polite"></p>
+<label for="saved-prompt">Сохранённая версия #{{ row.id }}</label>
+<textarea class="agent-prompt" id="saved-prompt" readonly rows="20">{{ result.prompt }}</textarea>
+<p class="muted">Создать промпт для другой тематики: в боте «Агенты» → «Мои промпты» → «Создать новый промпт». Эта версия останется в истории.</p>
+</section>
+{% else %}
+{% for variant in result.variants %}<section>
+<h2>{{ variant.id }}. {{ variant.title }}</h2>
+<textarea class="agent-prompt" id="headline-{{ variant.id }}" readonly rows="2" aria-label="Заголовок {{ variant.id }}">{{ variant.title }}</textarea>
+<div class="filter-actions"><button type="button" data-copy-target="headline-{{ variant.id }}">Скопировать заголовок</button></div>
+<p data-copy-status role="status" aria-live="polite"></p>
+</section>{% endfor %}
+<section><h2>Один промпт для всех заголовков</h2>
+<p><a href="{{ url_for('cabinet_agents') }}#my-prompts">Выбрать мой промпт</a> под нужную тематику. Подставьте выбранный заголовок — новая генерация не нужна.</p></section>
+{% endif %}
+{% else %}<p class="empty">{% if row.snapshot.get('purpose') == 'content' %}Готовых постов пока нет.{% elif row.snapshot.get('purpose', '').startswith('lead_magnet') %}Лид-магниты этой версии ещё не готовы. Сохранённые первоначальные варианты доступны в истории.{% elif row.snapshot.get('purpose') == 'image_prompts' %}Промпты для картинок ещё не готовы.{% elif row.snapshot.get('purpose') == 'writing_profile' %}Промпт этой версии ещё не готов. Предыдущая успешная версия остаётся доступной в истории.{% else %}Готовых заголовков пока нет.{% endif %} Если результат не появился, обратитесь в поддержку.</p>{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='agents.js') }}" defer></script>{% endblock %}

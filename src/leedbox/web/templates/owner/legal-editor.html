@@ -1,0 +1,30 @@
+{% extends 'owner/master.html' %}
+{% block head_tail %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='vendor/quill/quill.snow.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='legal.css') }}">{% endblock %}
+{% block body %}
+<!-- THESIS: edit legal text without changing the live document accidentally. OWN-WORLD: inherited light Bootstrap owner console. STORY: import, format, preview, explicitly publish. FIRST VIEWPORT: title and editor; separate draft and publication actions. FORM: local editor extension. FINISH: reviewed within the existing design system. -->
+<a href="{{ root }}/legal/">← Документы и согласия</a><h1>{{ title }}</h1>
+<p class="muted">Визуальное оформление или HTML-код. Можно вставить текст из блога либо импортировать HTML-файл. Скрипты, формы, картинки и произвольные стили удаляются сервером. Таблицы сохраняются в режиме HTML.</p>
+{% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+{% if live %}<p>На сайте: <a href="/legal/{{ slug }}/v/{{ live.number }}" target="_blank" rel="noopener noreferrer">версия {{ live.number }}</a>. Изменения ниже пока не опубликованы.</p>{% else %}<p>Документ ещё не опубликован.</p>{% endif %}
+{% if preview %}<section aria-label="Предпросмотр очищенного документа"><h2>Предпросмотр после очистки</h2><article class="legal-copy legal-preview">{{ preview }}</article></section>{% endif %}
+<form method="post" enctype="multipart/form-data" class="legal-form" id="legal-form">
+<input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="expected" value="{{ expected }}">
+<div class="form-group"><label for="document-title">Название документа</label><input class="form-control" id="document-title" name="title" value="{{ document_title }}" maxlength="160" required></div>
+<div class="form-group"><label for="document-file">Импорт файла — HTML или TXT с HTML-разметкой, UTF-8, до 100 КБ</label><input id="document-file" name="document" type="file" accept=".html,.htm,.txt"><button class="btn btn-outline-secondary" type="submit" name="action" value="import" formnovalidate>Загрузить в редактор</button></div>
+<div class="actions legal-modes" hidden id="legal-modes"><button class="btn btn-outline-secondary" id="visual-mode" type="button">Визуальный редактор</button><button class="btn btn-outline-secondary" id="html-mode" type="button">HTML-код</button></div>
+<p class="muted" id="editor-note">HTML доступен даже без JavaScript. После загрузки редактора можно переключить режим.</p>
+<div id="visual-panel" hidden>
+<div id="legal-toolbar" role="toolbar" aria-label="Оформление документа">
+<select class="ql-header" aria-label="Стиль абзаца"><option value="2">Заголовок 2</option><option value="3">Заголовок 3</option><option selected>Обычный текст</option></select>
+<button type="button" class="ql-bold" aria-label="Жирный">Ж</button><button type="button" class="ql-italic" aria-label="Курсив">К</button><button type="button" class="ql-underline" aria-label="Подчеркнуть">Ч</button>
+<button type="button" class="ql-list" value="ordered" aria-label="Нумерованный список">1.</button><button type="button" class="ql-list" value="bullet" aria-label="Маркированный список">•</button><button type="button" class="ql-blockquote" aria-label="Цитата">Цитата</button><button type="button" class="ql-clean" aria-label="Убрать оформление">Сбросить</button>
+</div><div id="legal-editor" aria-label="Текст документа"></div>
+<div class="legal-link"><label for="legal-link-url">Ссылка для выделенного текста</label><input id="legal-link-url" type="url" placeholder="https://…"><button class="btn btn-outline-secondary" id="add-link" type="button">Добавить ссылку</button><span id="link-status" role="status"></span></div>
+</div>
+<div id="html-panel"><label for="legal-source">HTML документа</label><textarea class="form-control legal-source" id="legal-source" name="html" rows="22" data-sanitized="{{ '0' if error else '1' }}">{{ html }}</textarea></div>
+<div class="confirmation"><label class="check"><input type="checkbox" name="confirmed" value="1"> Подтверждаю сохранение или публикацию документа</label></div>
+<div class="actions"><button class="btn btn-primary" name="action" value="publish" type="submit">Опубликовать новую версию</button><button class="btn btn-outline-secondary" name="action" value="draft" type="submit">Сохранить черновик</button><button class="btn btn-outline-secondary" id="legal-preview-button" name="action" value="preview" type="submit">Предпросмотр</button></div>
+</form>
+{% if versions %}<h2>Опубликованные версии</h2><ul>{% for version in versions %}<li><a href="/legal/{{ slug }}/v/{{ version.number }}" target="_blank" rel="noopener noreferrer">Версия {{ version.number }}</a> · {{ version.created_at.strftime('%d.%m.%Y %H:%M') }} UTC</li>{% endfor %}</ul>{% endif %}
+<script src="{{ url_for('static', filename='vendor/quill/quill.js') }}" defer></script><script src="{{ url_for('static', filename='legal-editor.js') }}" defer></script>
+{% endblock %}

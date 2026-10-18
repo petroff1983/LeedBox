@@ -1,0 +1,20 @@
+{% extends 'owner/master.html' %}
+{% block body %}
+<a href="{{ root }}/">← Обзор</a><h1>{{ title }}</h1><p class="muted">{{ help_text }}</p>
+{% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+{% if lookup %}<form method="get" class="filters"><label for="lookup-telegram">Telegram ID</label><input class="form-control" id="lookup-telegram" name="telegram" inputmode="numeric" required><button class="btn btn-outline-secondary" type="submit">Открыть пользователя</button></form>{% endif %}
+{% if preview %}<section aria-label="Предпросмотр"><h2>Предпросмотр</h2><pre class="result">{{ preview }}</pre></section>{% endif %}
+{% if image_preview %}<figure><img src="{{ image_preview }}" class="img-fluid" {% if portrait_preview %}style="max-height:320px;width:auto" alt="Фото создателя LeedBox"{% else %}alt="Текущий баннер главного меню"{% endif %}></figure>{% endif %}
+<form method="post" class="editor" {% if fields|selectattr('kind', 'equalto', 'file')|list %}enctype="multipart/form-data"{% endif %}>
+<input type="hidden" name="csrf_token" value="{{ csrf }}">
+{% for key,value in hidden.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+{% for field in fields %}<div class="form-group">
+{% if field.kind == 'checkbox' %}<label class="check"><input type="checkbox" name="{{ field.name }}" value="1" {% if field.value %}checked{% endif %}> {{ field.label }}</label>
+{% else %}<label for="field-{{ field.name }}">{{ field.label }}</label>
+{% if field.kind == 'textarea' %}<textarea class="form-control" id="field-{{ field.name }}" name="{{ field.name }}" rows="{{ field.rows|default(5) }}">{{ field.value }}</textarea>
+{% elif field.kind == 'select' %}<select class="form-control" id="field-{{ field.name }}" name="{{ field.name }}">{% for val,label in field.choices %}<option value="{{ val }}" {% if field.value == val %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+{% else %}<input class="form-control" type="{{ field.kind }}" id="field-{{ field.name }}" name="{{ field.name }}" {% if field.kind != 'file' %}value="{{ field.value }}"{% else %}accept="{{ field.accept }}"{% endif %} {% if field.kind == 'number' %}step="1"{% endif %}>{% endif %}
+{% endif %}</div>{% endfor %}
+<div class="confirmation"><label class="check"><input type="checkbox" name="confirmed" value="1"> {{ confirmation_label }}</label></div>
+<div class="actions"><button class="btn btn-primary" name="action" value="save" type="submit">{{ submit_label }}</button>{% if previewable %}<button class="btn btn-outline-secondary" name="action" value="preview" type="submit">Предпросмотр</button>{% endif %}</div>
+</form>{% endblock %}

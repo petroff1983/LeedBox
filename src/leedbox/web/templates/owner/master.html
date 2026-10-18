@@ -1,0 +1,14 @@
+{% extends 'admin/base.html' %}
+{% block head_tail %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='owner.css') }}">{% endblock %}
+{% block access_control %}
+<form method="post" action="{{ root }}/logout"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn btn-outline-light btn-sm" type="submit">Выйти</button></form>
+{% endblock %}
+{% block page_body %}
+<!-- THESIS: task-first owner console, not a marketing dashboard.
+WORLD: approved Flask-Admin Bootstrap4, light work surface for desk use.
+SIGNATURE: explicit confirmed writes, previews and immutable version restoration.
+FIRST VIEWPORT: owner state, missing setup and direct work links, no invented metrics.
+BEHAVIOR: responsive navigation and tables, keyboard focus, preserved errors; no decorative motion. -->
+{{ super() }}
+{% endblock %}
+{% block page_title %}{% endblock %}

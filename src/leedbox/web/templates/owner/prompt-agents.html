@@ -1,0 +1,32 @@
+{% extends 'owner/master.html' %}
+{% block body %}
+<h1>{{ title }}</h1>
+<p>Все шаблоны и инструкции в одном месте. Изменения применяются без перезапуска; начатые задачи сохраняют свою версию.</p>
+<section><h2>Промпты для внешней нейросети</h2>
+<p>Бот собирает ответы и выдаёт готовый промпт. Встроенный ИИ здесь не вызывается.</p>
+<div class="table-responsive"><table class="table"><thead><tr><th>Инструмент</th><th>Действие</th></tr></thead><tbody>
+{% for tool, label in prompt_tools %}<tr><td>{{ label }}</td><td><a href="{{ root }}/prompts/edit?tool={{ tool }}">Редактировать шаблон</a></td></tr>{% endfor %}
+</tbody></table></div></section>
+<section><h2>Агенты</h2>
+<div class="table-responsive"><table class="table agent-settings-table"><thead><tr><th>Агент</th><th>Состояние</th><th>Инструкции</th></tr></thead><tbody>
+{% for agent in agents %}<tr><td>{{ agent.name }}<br><span class="text-muted">{{ agent.description }}</span></td>
+<td><span class="agent-settings-label">Состояние: </span>{% if agent.enabled %}Включён{% else %}Выключен{% endif %}<br><a href="{{ root }}/{{ 'sections/' if agent.name == 'YouTube' else 'settings/edit?key=' ~ agent.switch }}">Изменить</a></td>
+<td><span class="agent-settings-label">Инструкции</span>{% for label, key in agent.prompts %}<p><a href="{{ root }}/settings/edit?key={{ key }}">{{ label }}</a></p>{% else %}Промпт не используется{% endfor %}</td></tr>{% endfor %}
+</tbody></table></div></section>
+<section><h2>Кредиты, доступ и расходы</h2><ul>
+<li><a href="{{ root }}/finance/prices">Цены AI-кредитов и действий</a></li>
+<li><a href="{{ root }}/finance/">Финансы: выручка, расходы и результат</a></li>
+<li><a href="{{ root }}/finance/providers">Остатки и лимиты API</a></li>
+<li><a href="{{ root }}/agents/access">Бесплатные попытки и безлимит пользователей</a></li>
+<li><a href="{{ root }}/agents/grant">Начислить AI-баланс эксперту</a></li>
+<li><a href="{{ root }}/agents/operations">История операций и расходов</a></li>
+<li><a href="{{ root }}/agents/uncertain">Неподтверждённые операции</a></li>
+<li><a href="{{ root }}/agents/">Бюджет API и дополнительные настройки</a></li>
+</ul></section>
+<section><h2>Справочники и версии</h2><ul>
+<li><a href="{{ root }}/content-niche/">Ниши экспертов</a></li>
+<li><a href="{{ root }}/content-idea/">Бесплатный каталог идей лид-магнитов</a></li>
+<li><a href="{{ root }}/content-objection/">Возражения</a></li>
+<li><a href="{{ root }}/history/">История изменений и откат</a></li>
+</ul></section>
+{% endblock %}

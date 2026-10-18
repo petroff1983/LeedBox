@@ -1,0 +1,1 @@
+{% extends 'legal/base.html' %}{% block content %}<h1>{{ title }}</h1><p class="legal-meta">Версия {{ version }} · опубликована {{ published_at.strftime('%d.%m.%Y') }}{% if archived %} · сохранённая версия{% endif %}</p><article class="legal-copy">{{ body }}</article>{% endblock %}

@@ -1,0 +1,13 @@
+{% extends 'owner/master.html' %}{% block body %}
+<!-- THESIS: fixed customer prices, separate from provider usage. OWN-WORLD: existing light Bootstrap4 console. STORY: inspect, edit, explicitly activate. FIRST VIEWPORT: mode, unit price, tariff table. FORM: local extension. FINISH: reviewed within the existing owner design system. -->
+<h1>{{ title }}</h1>
+<nav class="actions" aria-label="Финансы"><a href="{{ root }}/finance/">Финансовая сводка</a><a href="{{ root }}/finance/providers">Остатки API</a></nav>
+{% if error %}<p class="alert alert-danger" role="alert">{{ error }}</p>{% endif %}
+<p>Режим: <strong>{{ 'фиксированные кредиты' if active else 'старые AI-токены; кредитные цены ещё не включены' }}</strong>.</p>
+<p>Цена покупки одного кредита: <strong>{{ price }} ₽</strong>. <a href="{{ root }}/settings/edit?key=ai_credit_price_rub">Изменить цену кредита</a></p>
+<p class="muted">Новая цена действует только на новые покупки и подтверждения. Купленные кредиты не переоцениваются; подтверждённая задача сохраняет цену. Неудачный результат не оплачивается клиентом.</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Тарифы агентов"><table class="table"><thead><tr><th scope="col">Действие</th><th scope="col">Кредитов</th><th scope="col">Цена для клиента, ₽</th><th scope="col">Действие</th></tr></thead><tbody>{% for row in rows %}<tr>{% for cell in row %}<td>{% if cell is mapping %}<a href="{{ cell.url }}">{{ cell.label }}</a>{% else %}{{ cell }}{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+<p>Токены нейросети сохраняются как статистика и себестоимость API, но дополнительно с кредитного баланса не списываются. Бесплатные попытки и безлимит владельца сохранены.</p>
+{% if not active %}<form method="post" class="editor"><input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="expected" value="{{ expected }}"><p>Переход одноразовый. Сначала завершите все активные и неопределённые операции. Старый остаток переводится по прежней рублёвой цене токена и текущей цене кредита, с округлением вверх; история остаётся неизменной. Это компенсация старого баланса, не новая выручка.</p><label class="check"><input type="checkbox" name="confirmed" value="1" required> Подтверждаю переход и конвертацию старых остатков</label><button class="btn btn-primary" type="submit">Включить кредиты</button></form>{% endif %}
+<p><a href="{{ root }}/agents/access">Бесплатные попытки и безлимит пользователей</a> · <a href="{{ root }}/agents/grant">Начислить баланс вручную</a></p>
+{% endblock %}

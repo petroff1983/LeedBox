@@ -1,0 +1,31 @@
+name: Quality
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_USER: leedbox
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: leedbox_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U leedbox -d leedbox_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      LEEDBOX_ENVIRONMENT: test
+      LEEDBOX_DATABASE_URL: postgresql+psycopg://leedbox:ci_password@localhost:5432/leedbox_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.3"
+      - run: uv sync --locked --python 3.12
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run pytest
