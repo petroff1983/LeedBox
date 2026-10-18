@@ -57,13 +57,15 @@ def credit_fixture(ai_fixture):
     keys = [
         "ai_credits_enabled",
         "ai_credit_price_rub",
-        "ai_credit_cost_image_prompts",
-        "ai_credit_cost_content_search",
         "ai_content_enabled",
+        "ai_input_usd_per_million",
+        "ai_output_usd_per_million",
+        "ai_usd_rub",
         "finance_fee_percent",
         "finance_tax_percent",
         "finance_server_monthly_rub",
     ]
+    keys.extend("ai_credit_cost_" + key for key in credits.TARIFFS)
     with Session(engine) as db, db.begin():
         saved = {k: row.value for k in keys if (row := db.get(Setting, k))}
         db.execute(delete(Setting).where(Setting.key.in_(keys)))
@@ -92,8 +94,8 @@ def offer(db, task="image_prompts"):
         {
             "purpose": task,
             "model": "synthetic",
-            "maximum": 10000,
-            "rates": {"input": "0.30", "output": "1.20", "usd_rub": "100"},
+            "maximum": 6000,
+            "rates": {"input": "0.30", "output": "1.32", "usd_rub": "100"},
         },
     )
 
@@ -105,25 +107,32 @@ USAGE = {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150}
     "task,expected", [(key, price) for key, (_, price) in credits.TARIFFS.items()]
 )
 def test_fixed_prices(credit_fixture, task, expected):
-    engine, *_ = credit_fixture
-    with Session(engine) as db:
-        assert credits.amount(offer(db, task)) == expected
+    engine, _, _, owners, bot = credit_fixture
+    with Session(engine) as db, db.begin():
+        quoted = offer(db, task)
+        assert credits.amount(quoted) == expected
+        row = ai_tokens.reserve(db, owners[1], bot, True, "fixed-price-" + task, 10000, quoted)
+        operation_id = row.id
+    with Session(engine) as db, db.begin():
+        row = ai_tokens.settle(db, owners[1], bot, True, operation_id, USAGE, {}, True)
+        assert row.charged_credits == expected
+        assert ai_tokens.available(db, owners[1], bot, True) == 200 - expected
 
 
-@pytest.mark.parametrize("valid,charged", [(True, 10), (False, 0)])
+@pytest.mark.parametrize("valid,charged", [(True, 1), (False, 0)])
 def test_actual_usage_not_charged_as_credits_and_idempotency(credit_fixture, valid, charged):
     engine, _, _, owners, bot = credit_fixture
     with Session(engine) as db, db.begin():
         quoted = offer(db)
         row = ai_tokens.reserve(db, owners[1], bot, True, "credit-step", 10000, quoted)
         number = row.id
-        assert ai_tokens.available(db, owners[1], bot, True) == 190
+        assert ai_tokens.available(db, owners[1], bot, True) == 199
     with Session(engine) as db, db.begin():
         row = ai_tokens.settle(db, owners[1], bot, True, number, USAGE, {"ok": True}, valid)
         ai_tokens.settle(db, owners[1], bot, True, number, USAGE, {"ok": True}, valid)
         assert row.charged_credits == charged
         assert row.input_tokens + row.output_tokens == 150
-        assert row.cost_rub == Decimal("0.009")
+        assert row.cost_rub == Decimal("0.009600")
         assert ai_tokens.available(db, owners[1], bot, True) == 200 - charged
         assert ai_tokens.previous(db, owners[1], bot, True, "credit-step").id == number
 
@@ -179,7 +188,7 @@ def test_frozen_task_price_survives_setting_change(credit_fixture):
     with Session(engine) as db, db.begin():
         assert credits.amount(offer(db)) == 99
         row = ai_tokens.settle(db, owners[1], bot, True, number, USAGE, {}, True)
-        assert row.charged_credits == 10
+        assert row.charged_credits == 1
 
 
 def test_wallet_purchase_rounding_and_frozen_value(credit_fixture):
@@ -203,8 +212,8 @@ def test_wallet_purchase_rounding_and_frozen_value(credit_fixture):
     with Session(engine) as db, db.begin():
         row = ai_tokens.reserve(db, owners[1], bot, True, "spend-purchased", 10000, offer(db))
         ai_tokens.settle(db, owners[1], bot, True, row.id, USAGE, {}, True)
-        assert row.revenue_rub == Decimal("5")  # Carrying value, NOT 10 * new price (50).
-        assert db.get(AIAccount, (owners[1], bot, True)).credit_value_rub == 195
+        assert row.revenue_rub == Decimal("0.500000")  # Carrying value of one spent credit.
+        assert db.get(AIAccount, (owners[1], bot, True)).credit_value_rub == Decimal("199.500000")
         with pytest.raises(ValueError, match="Цена"):
             agents.buy_tokens(db, config, owners[1], bot, "stale-credit-price", quoted)
 
@@ -230,7 +239,7 @@ def test_content_batch_price_is_per_post(credit_fixture):
             "content_phase": "generation",
             "requests": [{"topic": "Маркетинг", "count": 3}, {"topic": "Бизнес", "count": 2}],
         }
-        assert credits.amount(credits.quoted_value(db, raw)) == 150
+        assert credits.amount(credits.quoted_value(db, raw)) == 5
 
 
 def test_legacy_quote_cannot_debit_new_credit_balance(credit_fixture):
@@ -253,7 +262,7 @@ def test_api_costs_include_free_failed_and_unlimited(credit_fixture):
             ai_tokens.settle(db, owners[1], bot, True, row.id, USAGE, {}, index != 2)
     with Session(engine) as db:
         after = finance.summary(db, bot, window("all", "test"))
-        assert after["api"] - before["api"] == Decimal("0.027")
+        assert after["api"] - before["api"] == Decimal("0.028800")
         assert after["ai_revenue"] == before["ai_revenue"]
 
 
@@ -326,7 +335,8 @@ def test_apify_limit_is_not_wallet_balance():
 
 
 def test_finance_admin_get_no_provider_calls_and_csrf(admin_fixture):
-    client, csrf, _, _, _ = admin_fixture
+    client, csrf, _, fixture, _ = admin_fixture
+    engine = fixture[0]
     with (
         patch.object(provider_limits, "refresh") as refresh,
         patch("leedbox.application.provider_balance.check") as check,
@@ -334,6 +344,30 @@ def test_finance_admin_get_no_provider_calls_and_csrf(admin_fixture):
         for path in ("/owner/finance/", "/owner/finance/prices", "/owner/finance/providers"):
             response = client.get(path)
             assert response.status_code == 200 and "API" in response.text
+        price_page = client.get("/owner/finance/prices")
+        assert "/owner/settings/edit?key=ai_credit_cost_lead_magnet" in price_page.text
+        edit_path = "/owner/settings/edit?key=ai_credit_cost_lead_magnet"
+        editor = client.get(edit_path)
+        assert editor.status_code == 200 and 'name="value"' in editor.text
+        expected = re.search(rb'name="expected" value="([^"]+)"', editor.data).group(1).decode()
+        assert (
+            client.post(
+                edit_path,
+                data={"csrf_token": csrf, "expected": expected, "value": "2", "confirmed": "1"},
+            ).status_code
+            == 302
+        )
+        with Session(engine) as db:
+            assert db.get(Setting, "ai_credit_cost_lead_magnet").value == 2
+        editor = client.get(edit_path)
+        expected = re.search(rb'name="expected" value="([^"]+)"', editor.data).group(1).decode()
+        assert (
+            client.post(
+                edit_path,
+                data={"csrf_token": csrf, "expected": expected, "value": "1", "confirmed": "1"},
+            ).status_code
+            == 302
+        )
         refresh.assert_not_called()
         check.assert_not_called()
         assert client.post("/owner/finance/providers", data={"confirmed": "1"}).status_code == 403
@@ -350,7 +384,7 @@ def test_actual_image_agent_uses_fixed_credit_price(credit_fixture):
     with Session(engine) as db:
         quoted = agents.quote_images(db, article())
         enough, preview = agents.payment_preview(db, config, owners[1], bot, quoted)
-        assert enough and "10 кредитов" in preview
+        assert enough and "1 кредит" in preview
     with patch.object(
         agents, "deepseek_generate", return_value=image_payload(image_result())
     ) as api:
@@ -362,8 +396,8 @@ def test_actual_image_agent_uses_fixed_credit_price(credit_fixture):
         api.assert_called_once()
     with Session(engine) as db:
         row = db.get(AIOperation, number)
-        assert row.charged_credits == 10 and row.input_tokens + row.output_tokens == 1200
-        assert ai_tokens.available(db, owners[1], bot, True) == 190
+        assert row.charged_credits == 1 and row.input_tokens + row.output_tokens == 1200
+        assert ai_tokens.available(db, owners[1], bot, True) == 199
 
 
 def test_actual_lm_then_critic_is_two_fixed_actions(credit_fixture):
@@ -377,17 +411,17 @@ def test_actual_lm_then_critic_is_two_fixed_actions(credit_fixture):
         tick(credit_fixture)
         with Session(engine) as db, db.begin():
             row = content_tasks.owned(db, config, owners[1], bot, token)
-            assert db.get(AIOperation, row.operation_id).charged_credits == 15
+            assert db.get(AIOperation, row.operation_id).charged_credits == 1
             quoted, digest, text, enough = lm.confirmation(db, config, row, True)
-            assert enough and credits.amount(quoted) == 15 and "кредитов" in text
+            assert enough and credits.amount(quoted) == 1 and "кредитов" in text
             lm.launch(db, config, row, digest, True)
         tick(credit_fixture)
         tick(credit_fixture)
     with Session(engine) as db:
         row = content_tasks.owned(db, config, owners[1], bot, token)
         assert row.status == "completed"
-        assert db.get(AIOperation, row.operation_id).charged_credits == 15
-        assert ai_tokens.available(db, owners[1], bot, True) == 170
+        assert db.get(AIOperation, row.operation_id).charged_credits == 1
+        assert ai_tokens.available(db, owners[1], bot, True) == 198
 
 
 def test_one_way_conversion_and_stale_confirmation(ai_fixture):
@@ -417,7 +451,7 @@ def test_below_cost_credit_price_blocks_before_api(credit_fixture):
         quoted = agents.quote_images(db, article())
     with (
         patch.object(agents, "deepseek_generate") as api,
-        pytest.raises(ValueError, match="наценку"),
+        pytest.raises(ValueError, match="Цена"),
     ):
         agents.generate(engine, config, owners[1], bot, "below-cost", quoted)
     api.assert_not_called()

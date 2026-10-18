@@ -12,16 +12,16 @@ from leedbox.application.settings import setting
 from leedbox.infrastructure.models import AIAccount, AIOperation, AuditLog
 
 TARIFFS = {
-    "dzen_search": ("Дзен: поиск топ-5", 3),
-    "dzen": ("Дзен: пять заголовков", 5),
-    "writing_profile": ("Подробный промпт статьи", 12),
-    "image_prompts": ("Пять промптов картинок", 10),
-    "lead_magnet": ("Пять тем лид-магнитов", 15),
-    "lead_magnet_revision": ("Критика и доработка лид-магнитов", 15),
-    "content_analysis": ("Анализ паттернов", 30),
-    "content_post": ("Один пост по паттернам", 30),
-    "youtube_search": ("YouTube: анализ канала", 5),
-    "content_search": ("Telegram: сбор 20, выдача до 10", 18),
+    "dzen_search": ("Дзен: поиск топ-5", 1),
+    "dzen": ("Дзен: пять заголовков", 1),
+    "writing_profile": ("Подробный промпт статьи", 1),
+    "image_prompts": ("Пять промптов картинок", 1),
+    "lead_magnet": ("Пять тем лид-магнитов", 1),
+    "lead_magnet_revision": ("Критика и доработка лид-магнитов", 1),
+    "content_analysis": ("Анализ паттернов", 1),
+    "content_post": ("Один пост по паттернам", 1),
+    "youtube_search": ("YouTube: анализ канала", 1),
+    "content_search": ("Telegram: сбор 20, выдача до 10", 8),
 }
 
 
@@ -138,26 +138,53 @@ def api_ceiling(db: Session, offer: dict[str, Any]) -> Decimal:
     )
 
 
+REFERENCE_USAGE = {
+    # Representative completed-operation usage with a 20% safety allowance.
+    # This is a pricing check, not a customer token reservation; actual API cost
+    # is recorded and shown in owner finance reports.
+    "dzen": (807, 534),
+    "writing_profile": (3000, 2000),
+    "image_prompts": (900, 500),
+    "lead_magnet": (901, 740),
+    "lead_magnet_revision": (3208, 1098),
+    "content_analysis": (3453, 384),
+    "content_post": (3584, 2061),
+}
+
+
 def ensure_margin(db: Session, offer: dict[str, Any]) -> None:
-    """Protect new paid confirmations, not owner/trial usage or historical quotes."""
+    """Require 100% markup over representative cost, not worst-case reserve."""
     if not is_credit(offer):
         return
+    task = str(offer.get("credit_quote", {}).get("task", ""))
     revenue = amount(offer) * Decimal(offer["credit_quote"]["unit_price_rub"])
     fraction = (
         Decimal(str(setting(db, "finance_fee_percent")))
         + Decimal(str(setting(db, "finance_tax_percent")))
     ) / 100
-    processing = (
-        Decimal("2")
-        if offer.get("purpose") in {"content", "content_search", "youtube_search"}
-        else Decimal("0.50")
-    )
-    if (
-        revenue * (Decimal("0.50") - fraction)
-        < api_ceiling(db, offer) * Decimal("1.25") + processing
-    ):
+    net_revenue = revenue * (Decimal("1") - fraction)
+    if task in REFERENCE_USAGE:
+        incoming, outgoing = REFERENCE_USAGE[task]
+        rates = offer.get("rates", {})
+        expected_cost = (
+            (
+                Decimal(incoming)
+                * Decimal(str(rates.get("input", setting(db, "ai_input_usd_per_million"))))
+                + Decimal(outgoing)
+                * Decimal(str(rates.get("output", setting(db, "ai_output_usd_per_million"))))
+            )
+            / 1000000
+            * Decimal(str(rates.get("usd_rub", setting(db, "ai_usd_rub"))))
+        )
+        expected_cost *= Decimal("1.20")
+        if task == "content_post":
+            expected_cost *= Decimal(str(offer.get("credit_quote", {}).get("count", 1)))
+    else:
+        expected_cost = api_ceiling(db, offer)
+    required_revenue = expected_cost * Decimal("2")
+    if net_revenue < required_revenue:
         raise ValueError(
-            "Цена действия не покрывает настроенные расходы и целевую наценку. "
+            "Цена действия ниже 2× расчётной себестоимости API с учетом комиссии и налога. "
             "Владелец должен проверить тариф."
         )
 

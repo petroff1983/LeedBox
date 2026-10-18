@@ -261,7 +261,7 @@ def test_sandbox_telegram_full_flow_and_isolation(request):
                     assert account is not None and account.credit_balance == 200
                     account.free_limits = {"image_prompts": 0}
                     offer = agents.quote_images(db, article())
-                    assert offer["credit_quote"]["amount"] == 10
+                    assert offer["credit_quote"]["amount"] == 1
                 test_config = config.model_copy(
                     update={"deepseek_api_key": SecretStr("fixture-key-never-used")}
                 )
@@ -281,18 +281,14 @@ def test_sandbox_telegram_full_flow_and_isolation(request):
                     operation = db.get(AIOperation, operation_id)
                     account = db.get(AIAccount, (owners[1], bot_id, True))
                     assert operation is not None and operation.status == "completed"
-                    assert operation.charged_credits == 10 and operation.balance_after == 190
-                    assert account is not None and account.credit_balance == 190
+                    assert operation.charged_credits == 1 and operation.balance_after == 199
+                    assert account is not None and account.credit_balance == 199
         finally:
             await dp.storage.close()
             await bot.session.close()
             with Session(engine) as db, db.begin():
-                db.execute(
-                    Setting.__table__.delete().where(Setting.key == "ai_credits_enabled")
-                )
-                db.execute(
-                    Setting.__table__.delete().where(Setting.key == "ai_images_enabled")
-                )
+                db.execute(Setting.__table__.delete().where(Setting.key == "ai_credits_enabled"))
+                db.execute(Setting.__table__.delete().where(Setting.key == "ai_images_enabled"))
                 if previous_ai_credits is not None:
                     db.add(Setting(key="ai_credits_enabled", value=previous_ai_credits))
                 if previous_ai_images is not None:
@@ -364,6 +360,4 @@ def test_sandbox_runtime_rejects_database_outside_isolated_sandbox():
         owner_ids=frozenset(),
     )
     with pytest.raises(ValueError, match="isolated local sandbox"):
-        asyncio.run(
-            run(config, local_test_router=Router(), local_test_actor=456)
-        )
+        asyncio.run(run(config, local_test_router=Router(), local_test_actor=456))
